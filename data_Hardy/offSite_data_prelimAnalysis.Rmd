@@ -19,8 +19,8 @@ load(here::here("data_Hardy","tree.2018.RData"))
 X<-
   tree.2018 %>% 
   mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
-  filter(Seedlot!="D")  # data entry error (will fix later)
-  
+  filter(Seedlot!="D") %>%   # data entry error (will fix later)
+  mutate(SMR=fct_relevel(SMR,"X","SX","SM","M","SH"))
   
 
 ```
@@ -99,3 +99,20 @@ Can see that all species had highest survival in SBSdw3.  Larch and Douglas-fir 
 Cedar A seedlot had better survival than other cedar seedlots.
 
 
+Look at survival by BGC unit and SMR:
+```{r}
+X %>% 
+  group_by(Species,Seedlot,BGC,SMR) %>% 
+  summarise(dead=sum(Vigour==3,na.rm=T),
+            live=sum(Vigour!=3,na.rm=T)) %>% 
+  mutate(survival=round(live/(dead+live),2)) %>% 
+  
+  # plotting
+  ggplot()+
+  aes(x=SMR,y=survival,fill=Seedlot)+
+  geom_bar(stat="Identity",position = "dodge")+
+  facet_wrap(~Species+BGC,scales="free_x")
+  # theme(axis.text.x = element_text(angle = 270, hjust = -0.2,vjust=0.5))
+  
+
+```
