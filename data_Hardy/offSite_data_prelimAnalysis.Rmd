@@ -1,0 +1,101 @@
+---
+title: "Offsite Data prelim analysis"
+author: "Hardy Griesbauer"
+date: "18/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# libraries
+library(tidyverse)
+
+
+# load data
+load(here::here("data_Hardy","tree.2018.RData"))
+
+# clean some of the data
+X<-
+  tree.2018 %>% 
+  mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
+  filter(Seedlot!="D")  # data entry error (will fix later)
+  
+  
+
+```
+
+### Administrative summaries
+Trial objective is to study the effects of regional climate, soil moisture regime, and provenance climate on survival and early growth of western redcedar, Douglas-fir, and western larch.
+
+Four BGC units were selected, and within each BGC unit, we identified four sites spanning soil moisture regimes ranging from subxeric to subhygric.  In addition, in the SBSwk1, we located a fifth site (xeric).  We used the term *plot* to denote each BGC unit/soil moisture regime combination.  Therefore, we had a total of 17 plots (4 BGC units x 4 soil moisture regime + 1 additional soil moisture regime in SBSwk1).  
+
+We planted cedar and Douglas-fir seedlings from three different provenance climates (seedlots) and larch from two different provenance climates.  Therefore, we had 8 combinations of species/seedlot.
+
+At each plot, we planted 20 replicates of each species/seedlot combination in a randomized block design.  Each block had had three rows (one for each species, selected at random), and each seedlot was planted in random order along each row.  Alvin Yanchuk advised the experimental design.
+
+**Measurements**
+We measured growth, root collar, and vigour in 2015 and 2018.  For larch and Douglas-fir, we used leader growth to determine seedling height in other years.
+
+Vigour, root collar, and forest health factors in this dataset are from 2018 measurements.
+
+**Number of trees planted per seedlot**
+```{r}
+
+## Number of trees planted by species and seedlot
+X %>% 
+  group_by(Species,Seedlot) %>%
+  summarise(`Number Planted`=n()) 
+```
+
+**Number of Site and soil moisture regime within site/BGC**
+As previously described, we planted 20 seedlings of each species/seedlot combination (8 combinations in total, see above) at each plot.  
+
+Only exception: SX plot in Burns Lake, because we couldn't find enough plantable spots.
+
+```{r}
+X %>% 
+  group_by(Site,BGC,SMR) %>%
+  summarise(`Number Planted`=n()) 
+
+```
+
+### Survival
+Survival was really low in this trial, as we experienced a strong drought that spring.
+
+Summarize 2018 survival by species/seedlot:
+```{r}
+X %>% 
+  group_by(Species,Seedlot) %>% 
+  summarise(dead=sum(Vigour==3,na.rm=T),
+            live=sum(Vigour!=3,na.rm=T)) %>% 
+  mutate(`survival %`=round(live/(dead+live),2))
+  
+
+```
+
+We see that over half of all species/seedlot combinations died by 2018.
+
+Look at survival by BGC unit:
+```{r}
+X %>% 
+  group_by(Species,Seedlot,BGC) %>% 
+  summarise(dead=sum(Vigour==3,na.rm=T),
+            live=sum(Vigour!=3,na.rm=T)) %>% 
+  mutate(survival=round(live/(dead+live),2)) %>% 
+  
+  # plotting
+  ggplot()+
+  aes(x=BGC,y=survival,fill=Seedlot)+
+  geom_bar(stat="Identity",position = "dodge")+
+  facet_wrap(~Species)+
+  theme(axis.text.x = element_text(angle = 270, hjust = -0.2,vjust=0.5))
+  
+
+```
+
+Can see that all species had highest survival in SBSdw3.  Larch and Douglas-fir have fairly similar survival.
+
+Cedar A seedlot had better survival than other cedar seedlots.
+
+
