@@ -1,0 +1,49 @@
+---
+title: "Summary"
+author: "Matt McLean"
+date: "23/03/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+<!--- Configuration --->
+```{r}
+year <- "2018"
+```
+
+```{r, echo=FALSE}
+sites <- c()
+files <- list.files("data/trees", pattern=paste0("*", year, ".csv"), recursive=TRUE, full.names=TRUE)
+
+for(file in files){
+  sites <- c(sites, unlist(strsplit(file, "/"))[3])
+}
+```
+
+# Offsite Trial Reporting
+
+## Plot Summaries
+```{r echo=FALSE,results="asis"}
+
+for(site in sites) {
+  cat("  \n",  site, "  \n")
+  trees = read.csv2(paste0("data/trees/", site, "/", year, ".csv"), header = TRUE, sep = ",")
+  dim(trees)
+  print(trees %>%
+    group_by(Plot) %>%
+    summarise('Number of Trees'=n()))
+}
+```
+
+### Treatment Summaries
+
+### Treatments by Species
+
+### Comparison of Tretments
+
+### Spatial analysis
+
+
