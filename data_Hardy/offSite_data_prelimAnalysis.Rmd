@@ -74,7 +74,7 @@ X %>%
 
 ```
 
-We see that over half of all species/seedlot combinations died by 2018.
+We see that across the entire experiment, over half of all species/seedlot combinations died by 2018.  However, we need to look at survival at the BGC/soil moisture regime level:
 
 Look at survival by BGC unit:
 ```{r}
@@ -116,3 +116,16 @@ X %>%
   
 
 ```
+
+Some observations:
+- Douglas-fir survival among all three seedlots has a somewhat decreasing survival rate with increasing soil moisture in 3/4 BGC units.  The slope differs - flattest in SBSdw3, steeper in colder BGC units.  SBSdk appears to be a particularly difficult unit for all species.
+
+- Larch has the same response somewhat, except for SBSdw3.
+
+- No discernible pattern with cedar.
+
+
+***
+###Growth
+
+Summarize growth in a similar way.
