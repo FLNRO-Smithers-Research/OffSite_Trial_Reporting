@@ -8,42 +8,76 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+source("plot_summary.R")
+source("climate_summary.R")
 ```
 <!--- Configuration --->
 ```{r}
 year <- "2018"
 ```
-
 ```{r, echo=FALSE}
-sites <- c()
-files <- list.files("data/trees", pattern=paste0("*", year, ".csv"), recursive=TRUE, full.names=TRUE)
+# load data
+load(here::here("data_Hardy","tree.2018.RData"))
 
-for(file in files){
-  sites <- c(sites, unlist(strsplit(file, "/"))[3])
-}
+# clean some of the data
+trees <-
+  tree.2018 %>% 
+  mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
+  filter(Seedlot!="D") %>%   # data entry error (will fix later)
+  mutate(SMR=fct_relevel(SMR,"X","SX","SM","M","SH"))
+
+sites <- unique(trees[,c("Site")])
 ```
+
+ 
+<!-- #At first I wanted to seperate files by site, however that is a hinderance for Treatment Summaries -->
+<!-- #It may be prudent to consider using a database if many sites are used to keep memory under control -->
+<!-- ```{r, echo=FALSE} -->
+<!-- sites <- c() -->
+<!-- files <- list.files("data/trees", pattern=paste0("*", year, ".csv"), recursive=TRUE, full.names=TRUE) -->
+
+<!-- for(file in files){ -->
+<!--   sites <- c(sites, unlist(strsplit(file, "/"))[3]) -->
+<!-- } -->
+<!-- ``` -->
+<!-- --->
+
+
 
 # Offsite Trial Reporting
 
 ## Plot Summaries
 ```{r echo=FALSE,results="asis"}
-
-for(site in sites) {
-  cat("  \n",  site, "  \n")
-  trees = read.csv2(paste0("data/trees/", site, "/", year, ".csv"), header = TRUE, sep = ",")
-  dim(trees)
-  print(trees %>%
-    group_by(Plot) %>%
-    summarise('Number of Trees'=n()))
+for(site in sites[[1]]) {
+  cat("  \n###",  site, "  \n")
+  active_trees = trees %>% filter(Site == site)
+  plot_summary(active_trees)
 }
 ```
 
-### Treatment Summaries
+## Treatment Summaries
 
-### Treatments by Species
+## Treatments by Species
 
-### Comparison of Tretments
+## Comparison of Tretments
 
-### Spatial analysis
+## Spatial analysis
 
+# Temperature
+```{r, echo=FALSE}
+# load data
+load(here::here("data_Hardy","hourly_clim.RData"))
+
+# clean some of the data
+climate <- hourly_clim
+
+sites <- unique(climate[,c("site")])
+```
+```{r echo=FALSE,results="asis"}
+for(csite in sites) {
+  cat("  \n### Site: ",  csite, "  \n")
+  active_site = climate %>% filter(csite == site)
+  temperature_event(active_site, 0)
+}
+```
 

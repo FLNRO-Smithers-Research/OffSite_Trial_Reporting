@@ -122,10 +122,48 @@ Some observations:
 
 - Larch has the same response somewhat, except for SBSdw3.
 
-- No discernible pattern with cedar.
 
 
 ***
 ###Growth
 
-Summarize growth in a similar way.
+Summarize seedling heights in a similar way.
+
+```{r}
+growth.2018<-
+  X %>% 
+  filter(Vigour %in% c(0,1)) %>% # filter for trees with excellent/good vigour
+  mutate(growth=`Height 2018`) %>% # look at 2018 height
+  
+# summarise
+  group_by(Species,Seedlot,BGC,SMR) %>% # grouping variables
+  summarise(growth.mean=mean(growth,na.rm=TRUE),
+            growth.sd=sd(growth,na.rm=TRUE))
+  
+  # plotting
+growth.2018 %>%   
+  ggplot()+
+  aes(x=SMR,y=growth.mean,fill=Seedlot)+
+  geom_bar(stat="Identity",position = "dodge")+
+  facet_wrap(~Species+BGC,scales="free")
+
+```
+
+
+### Try summarizing growth by ASMR
+
+```{r}
+growth.2018<-
+  X %>% 
+  filter(Vigour %in% c(0,1)) %>% # filter for trees with excellent/good vigour
+  mutate(growth=`Height 2018`) %>% 
+  filter(BGC=="SBSmc2")
+  
+  # plotting
+growth.2018 %>%   
+  ggplot()+
+  aes(x=asmr,y=growth,color=Seedlot)+
+  geom_point()+
+  facet_wrap(~Species,scales="free")
+
+```
