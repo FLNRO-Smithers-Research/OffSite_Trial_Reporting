@@ -21,13 +21,15 @@ year <- "2018"
 load(here::here("data_Hardy","tree.2018.RData"))
 
 # clean some of the data
-trees <-
-  tree.2018 %>% 
-  mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
-  filter(Seedlot!="D") %>%   # data entry error (will fix later)
-  mutate(SMR=fct_relevel(SMR,"X","SX","SM","M","SH"))
+# trees <-
+#   tree.2018 %>% 
+#   mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
+#   filter(Seedlot!="D") %>%   # data entry error (will fix later)
+#   mutate(SMR=fct_relevel(SMR,"X","SX","SM","M","SH"))
 
-sites <- unique(trees[,c("Site")])
+
+trees <- load_trees("data/survival/")
+fids = as.data.frame(trees %>% distinct(FID))
 ```
 
  
@@ -49,10 +51,10 @@ sites <- unique(trees[,c("Site")])
 
 ## Plot Summaries
 ```{r echo=FALSE,results="asis"}
-for(site in sites[[1]]) {
-  cat("  \n###",  site, "  \n")
-  active_trees = trees %>% filter(Site == site)
-  plot_summary(active_trees)
+for(id in 1:nrow(fids)) {
+  feature <- as.vector(fids$FID[id])
+  cat("  \n###",  feature, "  \n")
+  print(kable(plot_summary(filter(trees, FID == feature))))
 }
 ```
 
@@ -72,17 +74,18 @@ climate <- hourly_clim
 
 ```
 ```{r echo=FALSE,results="asis"}
-  climate_stats = temperature_summary(climate, 0)
-  ggplot(data = climate_stats, aes(y = num_events, x = site)) + geom_col()  +
-  coord_flip()
-  ggplot(data = climate_stats, aes(y = max_magnitude, x = site)) + geom_col()  +
-  coord_flip()
-  ggplot(data = climate_stats, aes(y = round(as.numeric(avg_magnitude)), x = site)) + geom_col()  +
-  coord_flip()
-  ggplot(data = climate_stats, aes(y = duration, x = site)) + geom_col()  +
-  coord_flip()
-  cat("\n")
-      
+  climate_stats = temperature_summary(climate, 0)  %>% arrange(site)
+  kable(climate_stats)
+  
+  ggplot(data=climate_stats, aes(x=site, y=num_events, fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
+  
+  #magnitude must be cast to character before numeric or conversion issues arrive
+  ggplot(data=climate_stats, aes(x=site, y=as.numeric(as.character(max_magnitude)), fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at site")
+  
+  ggplot(data=climate_stats, aes(x=site, y=as.numeric(as.character(duration)), fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
+  
+  cat("   \n")  
+  
   climate_stats = temperature_events(climate, 0)
   for(table in 1:length(climate_stats)){
     cat("   \n###", names(climate_stats[table]))

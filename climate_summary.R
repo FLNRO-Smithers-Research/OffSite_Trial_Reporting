@@ -12,10 +12,10 @@ temperature_summary <- function(climate, threshold){
     events = find_events(active_climate, threshold)
     df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
     colnames(df) <- c("date", "duration", "magnitude")
-    site_stats[[this_site]] <- c(this_site, length(df[["magnitude"]]), max(df[["magnitude"]]), mean(df[["magnitude"]]), sum(df[["duration"]]))
+    site_stats[[this_site]] <- c(this_site, length(df[["magnitude"]]), max(as.numeric(df[["magnitude"]])), sum(as.numeric(df[["duration"]])))
   }
   event_df = as.data.frame(t(matrix(unlist(site_stats), nrow=length(unlist(site_stats[1])))))
-  colnames(event_df) <- c("site", "num_events", "max_magnitude", "avg_magnitude", "duration")
+  colnames(event_df) <- c("site", "num_events", "max_magnitude", "duration")
   return(event_df)
 }
 
