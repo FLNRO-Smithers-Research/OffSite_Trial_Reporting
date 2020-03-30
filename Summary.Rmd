@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(knitr)
 source("plot_summary.R")
 source("climate_summary.R")
 ```
@@ -67,17 +68,25 @@ for(site in sites[[1]]) {
 ```{r, echo=FALSE}
 # load data
 load(here::here("data_Hardy","hourly_clim.RData"))
-
-# clean some of the data
 climate <- hourly_clim
 
-sites <- unique(climate[,c("site")])
 ```
 ```{r echo=FALSE,results="asis"}
-for(csite in sites) {
-  cat("  \n### Site: ",  csite, "  \n")
-  active_site = climate %>% filter(csite == site)
-  temperature_event(active_site, 0)
-}
+  climate_stats = temperature_summary(climate, 0)
+  ggplot(data = climate_stats, aes(y = num_events, x = site)) + geom_col()  +
+  coord_flip()
+  ggplot(data = climate_stats, aes(y = max_magnitude, x = site)) + geom_col()  +
+  coord_flip()
+  ggplot(data = climate_stats, aes(y = round(as.numeric(avg_magnitude)), x = site)) + geom_col()  +
+  coord_flip()
+  ggplot(data = climate_stats, aes(y = duration, x = site)) + geom_col()  +
+  coord_flip()
+  cat("\n")
+      
+  climate_stats = temperature_events(climate, 0)
+  for(table in 1:length(climate_stats)){
+    cat("   \n###", names(climate_stats[table]))
+    print(kable(climate_stats[[table]]))
+  }
 ```
 

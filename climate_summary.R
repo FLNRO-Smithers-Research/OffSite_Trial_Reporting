@@ -1,50 +1,78 @@
 library(epitools)
 library(ggplot2)
 
-temperature_event <- function(active_climate, threshold){
+#Input is a data frame, containing feilds "site", "date", and "temp", threshold is numeric of
+#same unit as "temp" column.
+#Returns Summary of all sites suitable for plotting.
+temperature_summary <- function(climate, threshold){
+  sites <- unique(climate[,c("site")])
+  site_stats = list()
+  for(this_site in sites){ #Calculate statistics for each site independantly
+    active_climate = climate %>% filter(site == this_site)
+    events = find_events(active_climate, threshold)
+    df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
+    colnames(df) <- c("date", "duration", "magnitude")
+    site_stats[[this_site]] <- c(this_site, length(df[["magnitude"]]), max(df[["magnitude"]]), mean(df[["magnitude"]]), sum(df[["duration"]]))
+  }
+  event_df = as.data.frame(t(matrix(unlist(site_stats), nrow=length(unlist(site_stats[1])))))
+  colnames(event_df) <- c("site", "num_events", "max_magnitude", "avg_magnitude", "duration")
+  return(event_df)
+}
+
+#Input is a data frame, containing feilds "site", "date", and "temp", threshold is numeric of
+#same unit as "temp" column.
+#Returns list of all events along with julian time, duration, and magnitude.
+temperature_events <- function(climate, threshold){
+  sites <- unique(climate[,c("site")])
+  all_events = list()
+  for(this_site in sites){ #Calculate statistics for each site independantly
+    active_climate = climate %>% filter(site == this_site)
+    events = find_events(active_climate, threshold)
+    event_df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
+    colnames(event_df) <- c("Julean Date", "Duration", "Magnitude")
+    all_events[[this_site]] <- event_df
+  }
+  return(all_events)
+}
+
+find_events <- function(active_climate, threshold){
   event_length = 0
   event_date = 0
   magnitude = threshold
   events = list()
   num_events = 0
-
-  for (hour in 1:nrow(active_climate)){
-    
-    if(is.na(active_climate[[3]][[hour]])){
-      if (event_length > 0){
+  for (period in 1:nrow(active_climate)){ 
+    if(is.na(active_climate[["temp"]][[period]])){ #Check for end of data
+      if (event_length > 0){ #If an event was detected but, at end of data save event
         events[[num_events]] <- c(event_date, event_length, magnitude)
         event_length = 0
         magnitude = threshold
       }
     }
     else {
-      if (event_length > 0 && active_climate[[3]][[hour]] < threshold){
+      #if loop is in an event, and temperature below threshold add to events duration, and check magnitude
+      if (event_length > 0 && active_climate[["temp"]][[period]] < threshold){
         event_length = event_length + 1
-        magnitude = min(magnitude, active_climate[[3]][[hour]])
+        magnitude = min(magnitude, active_climate[["temp"]][[period]])
       }
-      if (event_length == 0 && active_climate[[3]][[hour]] < threshold){
+      #if loop is not in an event, and temperature below threshold create event and set magnitude
+      if (event_length == 0 && active_climate[["temp"]][[period]] < threshold){
         event_length = event_length + 1
         num_events = num_events + 1
-        event_date = as.numeric(julian(active_climate[[2]][[hour]]))
-        magnitude = min(magnitude, active_climate[[3]][[hour]])
+        event_date = as.numeric(julian(active_climate[["date"]][[period]]))
+        magnitude = active_climate[["temp"]][[period]]
       }
-      
-      if (event_length > 0 && active_climate[[3]][[hour]] >= threshold){
+      #if loop is in an event, and temperature above theshold write out event
+      if (event_length > 0 && active_climate[["temp"]][[period]] >= threshold){
         events[[num_events]] <- c(event_date, event_length, (as.numeric(magnitude)*(-1)))
         event_length = 0
         magnitude = threshold
       }
     }
   }
+  #Write any remaining data at end of loop
   if (event_length > 0){
     events[[num_events]] <- c(event_date, event_length, (as.numeric(magnitude)*(-1)))
-    event_length = 0
-    magnitude = threshold
   }
-  df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
-  colnames(df) <- c("date", "duration", "magnitude")
-  print(cat("   \n Number of Events: ", length(events), "  \n"))
-  print(ggplot(data = df, aes(date)) + geom_line(aes(y=duration, color="Duration hours")) + geom_line(aes(y=magnitude, color="Magnitude: Degrees below threshold")))
-  return()
+  return(events)
 }
-
