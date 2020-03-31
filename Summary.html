@@ -370,17 +370,8 @@ summary {
 
 
 <!--- Configuration --->
-<pre class="r"><code>year &lt;- &quot;2018&quot;</code></pre>
-<!-- #At first I wanted to seperate files by site, however that is a hinderance for Treatment Summaries -->
-<!-- #It may be prudent to consider using a database if many sites are used to keep memory under control -->
-<!-- ```{r, echo=FALSE} -->
-<!-- sites <- c() -->
-<!-- files <- list.files("data/trees", pattern=paste0("*", year, ".csv"), recursive=TRUE, full.names=TRUE) -->
-<!-- for(file in files){ -->
-<!--   sites <- c(sites, unlist(strsplit(file, "/"))[3]) -->
-<!-- } -->
-<!-- ``` -->
-<!-- --->
+<pre class="r"><code>year &lt;- &quot;2018&quot;
+trees &lt;- load_trees(&quot;data/survival/&quot;)</code></pre>
 <div id="offsite-trial-reporting" class="section level1">
 <h1>Offsite Trial Reporting</h1>
 <div id="plot-summaries" class="section level2">
@@ -850,12 +841,13 @@ summary {
 </tbody>
 </table>
 </div>
-<div id="test" class="section level3">
-<h3>3_Test</h3>
+</div>
+<div id="treatment-summaries" class="section level2">
+<h2>Treatment Summaries</h2>
 <table>
 <thead>
 <tr class="header">
-<th align="left">fid</th>
+<th align="left">species</th>
 <th align="left">plot</th>
 <th align="left">condition</th>
 <th align="right">n</th>
@@ -863,467 +855,994 @@ summary {
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">1</td>
+<td align="left">Sx</td>
+<td align="left">39619</td>
 <td align="left">Good</td>
 <td align="right">32</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">1</td>
+<td align="left">Sx</td>
+<td align="left">39619</td>
 <td align="left">Fair</td>
 <td align="right">4</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">1</td>
+<td align="left">Sx</td>
+<td align="left">39619</td>
 <td align="left">Poor</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">1</td>
+<td align="left">Sx</td>
+<td align="left">39619</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">1</td>
+<td align="left">Sx</td>
+<td align="left">39619</td>
 <td align="left">Missing</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">2</td>
+<td align="left">Sx</td>
+<td align="left">8482</td>
+<td align="left">Good</td>
+<td align="right">28</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">8482</td>
+<td align="left">Fair</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">8482</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">8482</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">8482</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">63594</td>
+<td align="left">Good</td>
+<td align="right">29</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">63594</td>
+<td align="left">Fair</td>
+<td align="right">7</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">63594</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">63594</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">63594</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">13903</td>
 <td align="left">Good</td>
 <td align="right">25</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">2</td>
+<td align="left">Pl</td>
+<td align="left">13903</td>
 <td align="left">Fair</td>
 <td align="right">7</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">2</td>
+<td align="left">Pl</td>
+<td align="left">13903</td>
 <td align="left">Poor</td>
 <td align="right">2</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">2</td>
+<td align="left">Pl</td>
+<td align="left">13903</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">2</td>
+<td align="left">Pl</td>
+<td align="left">13903</td>
 <td align="left">Missing</td>
 <td align="right">2</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">3</td>
+<td align="left">Pl</td>
+<td align="left">63705</td>
+<td align="left">Good</td>
+<td align="right">23</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">63705</td>
+<td align="left">Fair</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">63705</td>
+<td align="left">Poor</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">63705</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">63705</td>
+<td align="left">Missing</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">32274</td>
+<td align="left">Good</td>
+<td align="right">22</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">32274</td>
+<td align="left">Fair</td>
+<td align="right">10</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">32274</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">32274</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">32274</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Fd</td>
+<td align="left">48678</td>
 <td align="left">Good</td>
 <td align="right">15</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">3</td>
+<td align="left">Fd</td>
+<td align="left">48678</td>
 <td align="left">Fair</td>
 <td align="right">16</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">3</td>
+<td align="left">Fd</td>
+<td align="left">48678</td>
 <td align="left">Poor</td>
 <td align="right">3</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">3</td>
+<td align="left">Fd</td>
+<td align="left">48678</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">3</td>
+<td align="left">Fd</td>
+<td align="left">48678</td>
 <td align="left">Missing</td>
 <td align="right">2</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">4</td>
-<td align="left">Good</td>
-<td align="right">29</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">4</td>
-<td align="left">Fair</td>
-<td align="right">4</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">4</td>
-<td align="left">Poor</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">4</td>
-<td align="left">Moribund</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">4</td>
-<td align="left">Missing</td>
-<td align="right">3</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">5</td>
-<td align="left">Good</td>
-<td align="right">27</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">5</td>
-<td align="left">Fair</td>
-<td align="right">9</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">5</td>
-<td align="left">Poor</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">5</td>
-<td align="left">Moribund</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">5</td>
-<td align="left">Missing</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">6</td>
+<td align="left">Fd</td>
+<td align="left">63540</td>
 <td align="left">Good</td>
 <td align="right">2</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">6</td>
+<td align="left">Fd</td>
+<td align="left">63540</td>
 <td align="left">Fair</td>
 <td align="right">14</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">6</td>
+<td align="left">Fd</td>
+<td align="left">63540</td>
 <td align="left">Poor</td>
 <td align="right">18</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">6</td>
+<td align="left">Fd</td>
+<td align="left">63540</td>
 <td align="left">Moribund</td>
 <td align="right">1</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">6</td>
+<td align="left">Fd</td>
+<td align="left">63540</td>
 <td align="left">Missing</td>
 <td align="right">1</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">7</td>
+<td align="left">Fd</td>
+<td align="left">8492</td>
 <td align="left">Good</td>
-<td align="right">28</td>
+<td align="right">16</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">7</td>
+<td align="left">Fd</td>
+<td align="left">8492</td>
 <td align="left">Fair</td>
-<td align="right">8</td>
+<td align="right">16</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">7</td>
+<td align="left">Fd</td>
+<td align="left">8492</td>
 <td align="left">Poor</td>
-<td align="right">0</td>
+<td align="right">4</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">7</td>
+<td align="left">Fd</td>
+<td align="left">8492</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">7</td>
+<td align="left">Fd</td>
+<td align="left">8492</td>
 <td align="left">Missing</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">8</td>
+<td align="left">Cw</td>
+<td align="left">48519</td>
 <td align="left">Good</td>
-<td align="right">23</td>
+<td align="right">29</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">8</td>
+<td align="left">Cw</td>
+<td align="left">48519</td>
 <td align="left">Fair</td>
-<td align="right">8</td>
+<td align="right">4</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">8</td>
+<td align="left">Cw</td>
+<td align="left">48519</td>
 <td align="left">Poor</td>
-<td align="right">2</td>
+<td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">8</td>
+<td align="left">Cw</td>
+<td align="left">48519</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">8</td>
+<td align="left">Cw</td>
+<td align="left">48519</td>
 <td align="left">Missing</td>
 <td align="right">3</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">9</td>
+<td align="left">Cw</td>
+<td align="left">40106</td>
 <td align="left">Good</td>
-<td align="right">29</td>
+<td align="right">27</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">9</td>
-<td align="left">Fair</td>
-<td align="right">7</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">9</td>
-<td align="left">Poor</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">9</td>
-<td align="left">Moribund</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">9</td>
-<td align="left">Missing</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">10</td>
-<td align="left">Good</td>
-<td align="right">20</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">10</td>
-<td align="left">Fair</td>
-<td align="right">11</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">10</td>
-<td align="left">Poor</td>
-<td align="right">5</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">10</td>
-<td align="left">Moribund</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">10</td>
-<td align="left">Missing</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">11</td>
-<td align="left">Good</td>
-<td align="right">26</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">11</td>
-<td align="left">Fair</td>
-<td align="right">6</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">11</td>
-<td align="left">Poor</td>
-<td align="right">4</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">11</td>
-<td align="left">Moribund</td>
-<td align="right">0</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">11</td>
-<td align="left">Missing</td>
-<td align="right">0</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">12</td>
-<td align="left">Good</td>
-<td align="right">22</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">12</td>
+<td align="left">Cw</td>
+<td align="left">40106</td>
 <td align="left">Fair</td>
 <td align="right">9</td>
 </tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">12</td>
-<td align="left">Poor</td>
-<td align="right">4</td>
-</tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">12</td>
-<td align="left">Moribund</td>
+<td align="left">Cw</td>
+<td align="left">40106</td>
+<td align="left">Poor</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">12</td>
-<td align="left">Missing</td>
-<td align="right">1</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">13</td>
-<td align="left">Good</td>
-<td align="right">16</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">13</td>
-<td align="left">Fair</td>
-<td align="right">16</td>
-</tr>
-<tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">13</td>
-<td align="left">Poor</td>
-<td align="right">4</td>
-</tr>
-<tr class="even">
-<td align="left">3_Test</td>
-<td align="left">13</td>
+<td align="left">Cw</td>
+<td align="left">40106</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">13</td>
+<td align="left">Cw</td>
+<td align="left">40106</td>
 <td align="left">Missing</td>
 <td align="right">0</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">14</td>
+<td align="left">Cw</td>
+<td align="left">53977</td>
 <td align="left">Good</td>
 <td align="right">25</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">14</td>
+<td align="left">Cw</td>
+<td align="left">53977</td>
 <td align="left">Fair</td>
 <td align="right">5</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">14</td>
+<td align="left">Cw</td>
+<td align="left">53977</td>
 <td align="left">Poor</td>
 <td align="right">4</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">14</td>
+<td align="left">Cw</td>
+<td align="left">53977</td>
 <td align="left">Moribund</td>
 <td align="right">2</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">14</td>
+<td align="left">Cw</td>
+<td align="left">53977</td>
 <td align="left">Missing</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">15</td>
+<td align="left">Lw</td>
+<td align="left">39282</td>
 <td align="left">Good</td>
-<td align="right">22</td>
+<td align="right">20</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">15</td>
+<td align="left">Lw</td>
+<td align="left">39282</td>
 <td align="left">Fair</td>
-<td align="right">10</td>
+<td align="right">11</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">15</td>
+<td align="left">Lw</td>
+<td align="left">39282</td>
 <td align="left">Poor</td>
-<td align="right">4</td>
+<td align="right">5</td>
 </tr>
 <tr class="even">
-<td align="left">3_Test</td>
-<td align="left">15</td>
+<td align="left">Lw</td>
+<td align="left">39282</td>
 <td align="left">Moribund</td>
 <td align="right">0</td>
 </tr>
 <tr class="odd">
-<td align="left">3_Test</td>
-<td align="left">15</td>
+<td align="left">Lw</td>
+<td align="left">39282</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">63578</td>
+<td align="left">Good</td>
+<td align="right">26</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">63578</td>
+<td align="left">Fair</td>
+<td align="right">6</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">63578</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">63578</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">63578</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">35192</td>
+<td align="left">Good</td>
+<td align="right">22</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">35192</td>
+<td align="left">Fair</td>
+<td align="right">9</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">35192</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">35192</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">35192</td>
+<td align="left">Missing</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<div id="section" class="section level3">
+<h3></h3>
+</div>
+</div>
+<div id="treatments-by-species" class="section level2">
+<h2>Treatments by Species</h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">species</th>
+<th align="left">condition</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">Good</td>
+<td align="right">89</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">Fair</td>
+<td align="right">19</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Sx</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Sx</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">Good</td>
+<td align="right">70</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">Fair</td>
+<td align="right">25</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">Poor</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">Pl</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Pl</td>
+<td align="left">Missing</td>
+<td align="right">5</td>
+</tr>
+<tr class="odd">
+<td align="left">Fd</td>
+<td align="left">Good</td>
+<td align="right">33</td>
+</tr>
+<tr class="even">
+<td align="left">Fd</td>
+<td align="left">Fair</td>
+<td align="right">46</td>
+</tr>
+<tr class="odd">
+<td align="left">Fd</td>
+<td align="left">Poor</td>
+<td align="right">25</td>
+</tr>
+<tr class="even">
+<td align="left">Fd</td>
+<td align="left">Moribund</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Fd</td>
+<td align="left">Missing</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">Cw</td>
+<td align="left">Good</td>
+<td align="right">81</td>
+</tr>
+<tr class="odd">
+<td align="left">Cw</td>
+<td align="left">Fair</td>
+<td align="right">18</td>
+</tr>
+<tr class="even">
+<td align="left">Cw</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">Cw</td>
+<td align="left">Moribund</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Cw</td>
+<td align="left">Missing</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">Good</td>
+<td align="right">68</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">Fair</td>
+<td align="right">26</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">Poor</td>
+<td align="right">13</td>
+</tr>
+<tr class="even">
+<td align="left">Lw</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Lw</td>
+<td align="left">Missing</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<div id="section-1" class="section level3">
+<h3></h3>
+</div>
+</div>
+<div id="treatments-by-seedlot" class="section level2">
+<h2>Treatments by Seedlot</h2>
+<table>
+<thead>
+<tr class="header">
+<th align="left">seedlot</th>
+<th align="left">condition</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">39619</td>
+<td align="left">Good</td>
+<td align="right">32</td>
+</tr>
+<tr class="even">
+<td align="left">39619</td>
+<td align="left">Fair</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">39619</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">39619</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">39619</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">13903</td>
+<td align="left">Good</td>
+<td align="right">25</td>
+</tr>
+<tr class="odd">
+<td align="left">13903</td>
+<td align="left">Fair</td>
+<td align="right">7</td>
+</tr>
+<tr class="even">
+<td align="left">13903</td>
+<td align="left">Poor</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">13903</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">13903</td>
+<td align="left">Missing</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">48678</td>
+<td align="left">Good</td>
+<td align="right">15</td>
+</tr>
+<tr class="even">
+<td align="left">48678</td>
+<td align="left">Fair</td>
+<td align="right">16</td>
+</tr>
+<tr class="odd">
+<td align="left">48678</td>
+<td align="left">Poor</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">48678</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">48678</td>
+<td align="left">Missing</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">48519</td>
+<td align="left">Good</td>
+<td align="right">29</td>
+</tr>
+<tr class="odd">
+<td align="left">48519</td>
+<td align="left">Fair</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">48519</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">48519</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">48519</td>
+<td align="left">Missing</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">40106</td>
+<td align="left">Good</td>
+<td align="right">27</td>
+</tr>
+<tr class="even">
+<td align="left">40106</td>
+<td align="left">Fair</td>
+<td align="right">9</td>
+</tr>
+<tr class="odd">
+<td align="left">40106</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">40106</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">40106</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">63540</td>
+<td align="left">Good</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">63540</td>
+<td align="left">Fair</td>
+<td align="right">14</td>
+</tr>
+<tr class="even">
+<td align="left">63540</td>
+<td align="left">Poor</td>
+<td align="right">18</td>
+</tr>
+<tr class="odd">
+<td align="left">63540</td>
+<td align="left">Moribund</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">63540</td>
+<td align="left">Missing</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">8482</td>
+<td align="left">Good</td>
+<td align="right">28</td>
+</tr>
+<tr class="even">
+<td align="left">8482</td>
+<td align="left">Fair</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">8482</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">8482</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">8482</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">63705</td>
+<td align="left">Good</td>
+<td align="right">23</td>
+</tr>
+<tr class="odd">
+<td align="left">63705</td>
+<td align="left">Fair</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">63705</td>
+<td align="left">Poor</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">63705</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">63705</td>
+<td align="left">Missing</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">63594</td>
+<td align="left">Good</td>
+<td align="right">29</td>
+</tr>
+<tr class="even">
+<td align="left">63594</td>
+<td align="left">Fair</td>
+<td align="right">7</td>
+</tr>
+<tr class="odd">
+<td align="left">63594</td>
+<td align="left">Poor</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">63594</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">63594</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">39282</td>
+<td align="left">Good</td>
+<td align="right">20</td>
+</tr>
+<tr class="odd">
+<td align="left">39282</td>
+<td align="left">Fair</td>
+<td align="right">11</td>
+</tr>
+<tr class="even">
+<td align="left">39282</td>
+<td align="left">Poor</td>
+<td align="right">5</td>
+</tr>
+<tr class="odd">
+<td align="left">39282</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">39282</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">63578</td>
+<td align="left">Good</td>
+<td align="right">26</td>
+</tr>
+<tr class="even">
+<td align="left">63578</td>
+<td align="left">Fair</td>
+<td align="right">6</td>
+</tr>
+<tr class="odd">
+<td align="left">63578</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">63578</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">63578</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">35192</td>
+<td align="left">Good</td>
+<td align="right">22</td>
+</tr>
+<tr class="odd">
+<td align="left">35192</td>
+<td align="left">Fair</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">35192</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">35192</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">35192</td>
+<td align="left">Missing</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">8492</td>
+<td align="left">Good</td>
+<td align="right">16</td>
+</tr>
+<tr class="even">
+<td align="left">8492</td>
+<td align="left">Fair</td>
+<td align="right">16</td>
+</tr>
+<tr class="odd">
+<td align="left">8492</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">8492</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">8492</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">53977</td>
+<td align="left">Good</td>
+<td align="right">25</td>
+</tr>
+<tr class="odd">
+<td align="left">53977</td>
+<td align="left">Fair</td>
+<td align="right">5</td>
+</tr>
+<tr class="even">
+<td align="left">53977</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">53977</td>
+<td align="left">Moribund</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">53977</td>
+<td align="left">Missing</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">32274</td>
+<td align="left">Good</td>
+<td align="right">22</td>
+</tr>
+<tr class="even">
+<td align="left">32274</td>
+<td align="left">Fair</td>
+<td align="right">10</td>
+</tr>
+<tr class="odd">
+<td align="left">32274</td>
+<td align="left">Poor</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">32274</td>
+<td align="left">Moribund</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">32274</td>
 <td align="left">Missing</td>
 <td align="right">0</td>
 </tr>
 </tbody>
 </table>
+<div id="section-2" class="section level3">
+<h3></h3>
 </div>
-</div>
-<div id="treatment-summaries" class="section level2">
-<h2>Treatment Summaries</h2>
-</div>
-<div id="treatments-by-species" class="section level2">
-<h2>Treatments by Species</h2>
-</div>
-<div id="comparison-of-tretments" class="section level2">
-<h2>Comparison of Tretments</h2>
 </div>
 <div id="spatial-analysis" class="section level2">
 <h2>Spatial analysis</h2>

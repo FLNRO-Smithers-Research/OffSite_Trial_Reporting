@@ -11,59 +11,44 @@ library(tidyverse)
 library(knitr)
 source("plot_summary.R")
 source("climate_summary.R")
+
 ```
 <!--- Configuration --->
 ```{r}
 year <- "2018"
-```
-```{r, echo=FALSE}
-# load data
-load(here::here("data_Hardy","tree.2018.RData"))
-
-# clean some of the data
-# trees <-
-#   tree.2018 %>% 
-#   mutate(Species=replace(Species,Species=="Fd","Fdi")) %>%  # fix species data entry error
-#   filter(Seedlot!="D") %>%   # data entry error (will fix later)
-#   mutate(SMR=fct_relevel(SMR,"X","SX","SM","M","SH"))
-
-
 trees <- load_trees("data/survival/")
-fids = as.data.frame(trees %>% distinct(FID))
 ```
-
- 
-<!-- #At first I wanted to seperate files by site, however that is a hinderance for Treatment Summaries -->
-<!-- #It may be prudent to consider using a database if many sites are used to keep memory under control -->
-<!-- ```{r, echo=FALSE} -->
-<!-- sites <- c() -->
-<!-- files <- list.files("data/trees", pattern=paste0("*", year, ".csv"), recursive=TRUE, full.names=TRUE) -->
-
-<!-- for(file in files){ -->
-<!--   sites <- c(sites, unlist(strsplit(file, "/"))[3]) -->
-<!-- } -->
-<!-- ``` -->
-<!-- --->
-
-
 
 # Offsite Trial Reporting
 
 ## Plot Summaries
 ```{r echo=FALSE,results="asis"}
+fids = as.data.frame(trees %>% distinct(FID))
 for(id in 1:nrow(fids)) {
-  feature <- as.vector(fids$FID[id])
+  feature <- as.vector(fids$FID[[id]])
   cat("  \n###",  feature, "  \n")
   print(kable(plot_summary(filter(trees, FID == feature))))
 }
 ```
 
 ## Treatment Summaries
-
+```{r echo=FALSE, results="asis"}
+treatments = as.data.frame(trees %>% distinct(Species, Seedlot))
+print(kable(treatment_summary(trees)))
+cat("  \n###")
+```
 ## Treatments by Species
-
-## Comparison of Tretments
-
+```{r echo=FALSE, results="asis"}
+treatments = as.data.frame(trees %>% distinct(Species))
+print(kable(species_summary(trees)))
+cat("  \n###")
+```
+## Treatments by Seedlot
+```{r echo=FALSE, results="asis"}
+treatments = as.data.frame(trees %>% distinct(Seedlot))
+print(kable(seedlot_summary(trees)))
+cat("  \n###")
+```
 ## Spatial analysis
 
 # Temperature
