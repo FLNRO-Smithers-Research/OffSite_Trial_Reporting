@@ -14,9 +14,10 @@ source("climate_summary.R")
 
 ```
 <!--- Configuration --->
-```{r}
-year <- "2018"
-trees <- load_trees("data/survival/")
+```{r, echo=FALSE}
+load(here::here("trial_data.Rdata"))
+trees = all_data$trees
+climate = all_data$climate
 ```
 
 # Offsite Trial Reporting
@@ -52,22 +53,16 @@ cat("  \n###")
 ## Spatial analysis
 
 # Temperature
-```{r, echo=FALSE}
-# load data
-load(here::here("data_Hardy","hourly_clim.RData"))
-climate <- hourly_clim
-
-```
 ```{r echo=FALSE,results="asis"}
-  climate_stats = temperature_summary(climate, 0)  %>% arrange(site)
+  climate_stats = temperature_summary(climate, 0)  %>% arrange(ClimateStationID)
   kable(climate_stats)
   
-  ggplot(data=climate_stats, aes(x=site, y=num_events, fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
+  ggplot(data=climate_stats, aes(x=ClimateStationID, y=num_events, fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
   
   #magnitude must be cast to character before numeric or conversion issues arrive
-  ggplot(data=climate_stats, aes(x=site, y=as.numeric(as.character(max_magnitude)), fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at site")
+  ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at ClimateStationID")
   
-  ggplot(data=climate_stats, aes(x=site, y=as.numeric(as.character(duration)), fill=site)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
+  ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(duration)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
   
   cat("   \n")  
   

@@ -11,20 +11,25 @@ load_trees <- function(folder){
 }
 
 plot_summary <- function(tree_list){
-  summary <- data.frame(fid=character(), plot=character(), condition=character(), count=numeric())
+  summary <- data.frame(fid=character(), plot=character(), species=character(), seedlot=character(), condition=character(), count=numeric())
   fid <- tree_list %>% distinct(FID)
   for (f in 1:nrow(fid)){
-    plots <- filter(tree_list, FID == fid$FID[[f]]) %>% distinct(Plot)
+    plots <- filter(tree_list, FID == fid$FID[[f]]) %>% distinct(Plot, Species, Seedlot)
     for (p in 1:nrow(plots)){
-      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), condition="Good", 
+      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), species=as.character(plots$Species[[p]]), 
+                                           seedlot=as.character(plots$Seedlot[[p]]), condition="Good", 
                                            count=filter(tree_list, FID == fid$FID[[f]] & Plot == plots$Plot[[p]] & Condition == "Good") %>% count()))
-      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), condition="Fair", 
+      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), species=as.character(plots$Species[[p]]),
+                                           seedlot=as.character(plots$Seedlot[[p]]), condition="Fair",
                                            count=filter(tree_list, FID == fid$FID[[f]] & Plot == plots$Plot[[p]] & Condition == "Fair") %>% count()))
-      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), condition="Poor", 
+      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), species=as.character(plots$Species[[p]]),
+                                           seedlot=as.character(plots$Seedlot[[p]]), condition="Poor",
                                            count=filter(tree_list, FID == fid$FID[[f]] & Plot == plots$Plot[[p]] & Condition == "Poor") %>% count()))
-      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), condition="Moribund", 
+      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), species=as.character(plots$Species[[p]]),
+                                           seedlot=as.character(plots$Seedlot[[p]]), condition="Moribund",
                                            count=filter(tree_list, FID == fid$FID[[f]] & Plot == plots$Plot[[p]] & Condition == "Moribund") %>% count()))
-      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), condition="Missing", 
+      summary <- rbind(summary, data.frame(fid=as.character(fid$FID[[f]]), plot=as.character(plots$Plot[[p]]), species=as.character(plots$Species[[p]]),
+                                           seedlot=as.character(plots$Seedlot[[p]]), condition="Missing",
                                            count=filter(tree_list, FID == fid$FID[[f]] & Plot == plots$Plot[[p]] & Condition == "Missing") %>% count()))
     }
   }
