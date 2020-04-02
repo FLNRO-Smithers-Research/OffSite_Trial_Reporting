@@ -1,21 +1,33 @@
+source("tree_position.R")
 load_all <- function(dir){
   tree_dir = paste(dir, "/trees", sep = "")
   plot_dir = paste(dir, "/plots", sep = "")
   meta_dir = paste(dir, "/meta", sep = "")
   climate_dir = paste(dir, "/climate", sep = "")
   all_data <- list("trees" = data.frame(), "plots" = data.frame(), "climate" = data.frame(), "meta" = data.frame())
-  all_data$trees = load_trees(tree_dir)
+  
   all_data$plots = load_plots(plot_dir)
+  all_data$trees = load_trees(tree_dir, all_data$plots)
   all_data$climate = load_climate(climate_dir)
   all_data$meta = load_meta(meta_dir)
   save(all_data, file = "trial_data.Rdata")
 }
 
-load_trees <- function(folder){
+#TODO Fail gracefully if plot is not present for given tree
+load_trees <- function(folder, plots){
   file_list = list.files(folder)
   trees = data.frame()
   for(file in file_list){
     trees = rbind(trees, read.csv(paste(folder, "/", file, sep = "")))
+  }
+  trees[,"N"] <- numeric()
+  trees[,"E"] <- numeric()
+  trees[,"Zone"] <- character()
+  for(tree in 1: nrow(trees)){
+    result = tree_position(trees[tree,], plots)
+    trees[tree, "N"] = result[["N"]]
+    trees[tree, "E"] = result[["E"]]
+    trees[tree, "Zone"] = result[["Zone"]]
   }
   return(trees)
 }
