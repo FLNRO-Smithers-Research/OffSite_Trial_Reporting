@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
 library(tidyverse)
 library(knitr)
 source("plot_summary.R")
@@ -50,6 +51,40 @@ treatments = as.data.frame(trees %>% distinct(Seedlot))
 print(kable(seedlot_summary(trees)))
 cat("  \n###")
 ```
+
+# Plotting
+Plot seedling condition by seedlot
+```{r plot seedling condition echo-FALSE}
+
+all_data$trees %>% 
+  
+  # need to convert seedlot to factor
+  mutate(Seedlot=factor(Seedlot)) %>% 
+  
+  # Relevel condition factors
+  mutate(Condition=fct_relevel(Condition,"Missing","Moribund","Poor","Fair","Good")) %>% # reorder levels
+  
+  # Create plot summaries
+  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
+  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
+  
+  # Let's create plot means and error bars
+  ungroup() %>% 
+  group_by(Species,Seedlot,Condition) %>% 
+  summarise(Condition.Mean=mean(n)) %>% 
+  
+  # Plotting
+  ggplot()+
+  aes(x=Seedlot,y=Condition.Mean,color=Condition,fill=Condition)+
+  geom_bar(stat="Identity")+
+  facet_wrap(~Species,ncol=3,scales="free_x")+
+  theme(legend.position = "bottom")
+
+
+
+```
+
+
 ## Spatial analysis
 
 # Temperature
