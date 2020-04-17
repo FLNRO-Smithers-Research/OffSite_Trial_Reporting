@@ -20,14 +20,12 @@ load_trees <- function(folder, plots){
     }
   }
     
-  trees[,"N"] <- numeric()
-  trees[,"E"] <- numeric()
-  trees[,"Zone"] <- character()
+  trees[,"Lat"] <- numeric()
+  trees[,"Lon"] <- numeric()
   for(tree in 1: nrow(trees)){
     result = tree_position(trees[tree,], plots)
-    trees[tree, "N"] = result[["N"]]
-    trees[tree, "E"] = result[["E"]]
-    trees[tree, "Zone"] = result[["Zone"]]
+    trees[tree, "Lat"] = result[["Lat"]]
+    trees[tree, "Lon"] = result[["Lon"]]
   }
   return(trees)
 }

@@ -89,10 +89,10 @@ all_data$trees %>%
 
 ## Spatial analysis
 ```{r echo=FALSE,results="asis"}
-  points <- st_as_sf(x = all_data$trees, coords = c("N", "E"), crs = "+proj=utm +zone=10 +north +datum=WGS84 +units=m +no_defs")
+  points <- st_as_sf(x = all_data$trees %>% mutate(Condition=fct_relevel(Condition,"Missing","Moribund","Poor","Fair","Good")), coords = c("Lat", "Lon"), crs = "+proj=longlat")
   
-  #TODO: Reorder ledged
-  mapview(points["Condition"], col.regions = c("Yellow", "Green", "Blue", "Red", "Orange"), lwd = 0, cex = 5)
+  #TODO: Reorder ledged, leaflet only supports alphabetical ledgends maybe use ggplot instead? 
+  mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
 ```
 # Temperature
 ```{r echo=FALSE,results="asis"}
