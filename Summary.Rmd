@@ -21,11 +21,27 @@ source("functions/climate_summary.R")
 load(here::here("trial_data.Rdata"))
 trees = all_data$trees
 climate = all_data$climate
+plots = all_data$plots
+meta = all_data$meta
+sites = distinct(select(merge(meta, plots, by="FID"), Location, Lat, Lon), Location, .keep_all = TRUE) #Location based on a plot not center of site
 ```
 
-# Offsite Trial Reporting
+# Offsite Trial Reporting {.tabset}
 
-## Plot Summaries
+## Study Information
+
+## Graphical Comparisons
+
+## Statistical Comparisons
+
+## Appendix
+
+
+
+
+
+## TODO: Move This
+### Plot Summaries
 ```{r echo=FALSE,results="asis"}
 fids = as.data.frame(trees %>% distinct(FID))
 for(id in 1:nrow(fids)) {
@@ -35,26 +51,26 @@ for(id in 1:nrow(fids)) {
 }
 ```
 
-## Treatment Summaries
+### Treatment Summaries
 ```{r echo=FALSE, results="asis"}
 treatments = as.data.frame(trees %>% distinct(Species, Seedlot))
 print(kable(treatment_summary(trees)))
 cat("  \n###")
 ```
-## Treatments by Species
+### Treatments by Species
 ```{r echo=FALSE, results="asis"}
 treatments = as.data.frame(trees %>% distinct(Species))
 print(kable(species_summary(trees)))
 cat("  \n###")
 ```
-## Treatments by Seedlot
+### Treatments by Seedlot
 ```{r echo=FALSE, results="asis"}
 treatments = as.data.frame(trees %>% distinct(Seedlot))
 print(kable(seedlot_summary(trees)))
 cat("  \n###")
 ```
 
-# Plotting
+### Plotting
 Plot seedling condition by seedlot
 ```{r plot seedling condition echo-FALSE}
 
@@ -87,14 +103,14 @@ all_data$trees %>%
 ```
 
 
-## Spatial analysis
+### Spatial analysis
 ```{r echo=FALSE,results="asis"}
   points <- st_as_sf(x = all_data$trees %>% mutate(Condition=fct_relevel(Condition,"Missing","Moribund","Poor","Fair","Good")), coords = c("Lat", "Lon"), crs = "+proj=longlat")
   
   #TODO: Reorder ledged, leaflet only supports alphabetical ledgends maybe use ggplot instead? 
   mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
 ```
-# Temperature
+### Temperature
 ```{r echo=FALSE,results="asis"}
   climate_stats = temperature_summary(climate, 0)  %>% arrange(ClimateStationID)
   kable(climate_stats)
