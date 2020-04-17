@@ -12,8 +12,8 @@ library(tidyverse)
 library(knitr)
 library(sf)
 library(mapview)
-source("plot_summary.R")
-source("climate_summary.R")
+source("functions/plot_summary.R")
+source("functions/climate_summary.R")
 
 ```
 <!--- Configuration --->
