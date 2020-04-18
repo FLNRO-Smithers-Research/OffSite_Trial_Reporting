@@ -23,7 +23,7 @@ trees = all_data$trees
 climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
-sites = distinct(select(merge(meta, plots, by="FID"), Location, Lat, Lon), Location, .keep_all = TRUE) #Location based on a plot not center of site
+sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of site
 ```
 
 # Offsite Trial Reporting {.tabset}

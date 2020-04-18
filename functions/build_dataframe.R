@@ -3,10 +3,15 @@ load_all <- function(dir){
   
   all_data <- list("trees" = data.frame(), "plots" = data.frame(), "climate" = data.frame(), "meta" = data.frame())
   
-  all_data$plots = load_plots(dir)
-  all_data$trees = load_trees(dir, all_data$plots)
-  all_data$climate = load_climate(dir)
   all_data$meta = load_meta(dir)
+  print("Loaded Metadata...")
+  all_data$plots = load_plots(dir)
+  print("Loaded Plots...")
+  all_data$trees = load_trees(dir, all_data$plots)
+  print("Loaded Trees...")
+  all_data$climate = load_climate(dir)
+  print("Loaded Climate...")
+
   save(all_data, file = "trial_data.Rdata")
 }
 
@@ -22,7 +27,8 @@ load_trees <- function(folder, plots){
     
   trees[,"Lat"] <- numeric()
   trees[,"Lon"] <- numeric()
-  for(tree in 1: nrow(trees)){
+  for(tree in 1:nrow(trees)){
+    #print(trees[tree,])
     result = tree_position(trees[tree,], plots)
     trees[tree, "Lat"] = result[["Lat"]]
     trees[tree, "Lon"] = result[["Lon"]]
