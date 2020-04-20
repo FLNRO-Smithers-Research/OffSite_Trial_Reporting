@@ -3,19 +3,22 @@ load_all <- function(dir){
   
   all_data <- list("trees" = data.frame(), "plots" = data.frame(), "climate" = data.frame(), "meta" = data.frame())
   
+  print("loading metadata...")
   all_data$meta = load_meta(dir)
-  print("Loaded Metadata...")
+  print("loading seedlots...")
+  all_data$seedlots = load_seedlots(dir)
+  print("loading plots...")
   all_data$plots = load_plots(dir)
-  print("Loaded Plots...")
+  print("loading trees...")
   all_data$trees = load_trees(dir, all_data$plots)
-  print("Loaded Trees...")
+  print("loading climate...")
   all_data$climate = load_climate(dir)
-  print("Loaded Climate...")
+  print("finished!")
 
   save(all_data, file = "trial_data.Rdata")
 }
 
-#TODO Fail gracefully if plot is not present for given tree
+
 load_trees <- function(folder, plots){
   file_list = list.files(folder)
   trees = data.frame()
@@ -73,6 +76,17 @@ load_meta <- function(folder){
     }
   }
   return(meta)
+}
+
+load_seedlots <- function(folder){
+  file_list = list.files(folder)
+  seedlots = data.frame()
+  for(file in file_list){
+    if(grepl("seedlots", file)){
+      seedlots = rbind(seedlots, read.csv(paste(folder, "/", file, sep = "")))
+    }
+  }
+  return(seedlots)
 }
 
 

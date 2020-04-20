@@ -1,8 +1,12 @@
 ---
-title: "Summary"
+title: "Offsite Trial Reporting"
 author: "Matt McLean"
 date: "23/03/2020"
-output: html_document
+output: 
+  html_document:
+    toc: TRUE
+    toc_float: TRUE
+    toc_depth: 4
 ---
 
 ```{r setup, include=FALSE}
@@ -12,6 +16,9 @@ library(tidyverse)
 library(knitr)
 library(sf)
 library(mapview)
+library(tmap)
+library(ggplot2)
+library(ggthemes)
 source("functions/plot_summary.R")
 source("functions/climate_summary.R")
 
@@ -19,35 +26,94 @@ source("functions/climate_summary.R")
 <!--- Configuration --->
 ```{r, echo=FALSE}
 load(here::here("trial_data.Rdata"))
+seedlots = all_data$seedlots
 trees = all_data$trees
 climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
-sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of site
+sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of 
+climate_stats = temperature_summary(climate, 0)  %>% arrange(ClimateStationID)
+condition_colours = c(Missing='blue', Dead='black', Moribund='red', Poor='orange', Fair='yellow', Good='green','purple')
+```
+# Study Information
+## Map
+```{r echo=FALSE,results="asis"}
+  points <- st_as_sf(x = sites %>% mutate(FID), coords = c("Lon", "Lat"), crs = "+proj=longlat")
+  
+  #TODO: Prevent Labels overlapping, increase bounding box size
+  mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap")) %>% leafem::addStaticLabels(label = points$FID, noHide = FALSE, direction = 'auto', textsize='20px')
 ```
 
-# Offsite Trial Reporting {.tabset}
+## Seedlots
+```{r echo=FALSE,results="asis"}
+kable(seedlots %>% select(Seedlot, Local.place.name, Species, Code, Provenance.description))
+```
 
-## Study Information
-
-## Graphical Comparisons
-
-## Statistical Comparisons
-
-## Appendix
+# Graphical Comparisons
 
 
+## Seedling condition by seedlot
+```{r echo=FALSE}
+#TODO: Convert to % instead of count
+trees %>% 
+  
+  # need to convert seedlot to factor
+  mutate(Seedlot=factor(Seedlot)) %>% 
+  
+  # Relevel condition factors
+  mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good")) %>% # reorder levels
+  
+  # Create plot summaries
+  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
+  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
+  
+  # Let's create plot means and error bars
+  ungroup() %>% 
+  group_by(Species,Seedlot,Condition) %>% 
+  summarise(Condition.Mean=mean(n)) %>% 
+  
+  # Plotting
+  ggplot()+
+  aes(x=Seedlot,y=Condition.Mean,fill=Condition)+
+  geom_bar(stat="Identity")+
+  facet_wrap(~Species,ncol=3,scales="free_x")+
+  theme(legend.position = "bottom")+
+  theme_few() + scale_fill_manual(values = alpha(condition_colours, .8))
+```
+
+## Temperature
+```{r echo=FALSE,results="asis"}
 
 
 
-## TODO: Move This
+ggplot(data=climate_stats, aes(x=ClimateStationID, y=num_events, fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
+
+#magnitude must be cast to character before numeric or conversion issues arrive
+ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at ClimateStationID")
+
+ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(duration)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
+
+```
+
+# Statistical Comparisons
+
+## Temperature
+```{r echo=FALSE}
+kable(climate_stats)
+```
+
+# Appendix
+
+## Data Tables
+
 ### Plot Summaries
 ```{r echo=FALSE,results="asis"}
-fids = as.data.frame(trees %>% distinct(FID))
-for(id in 1:nrow(fids)) {
-  feature <- as.vector(fids$FID[[id]])
-  cat("  \n###",  feature, "  \n")
-  print(kable(plot_summary(filter(trees, FID == feature))))
+
+  fids = as.data.frame(trees %>% distinct(FID))
+  for(id in 1:nrow(fids)) {
+    feature <- as.vector(fids$FID[[id]])
+    cat("  \n####",  feature, "  \n")
+    print(kable(plot_summary(filter(trees, FID == feature))))
 }
 ```
 
@@ -61,73 +127,38 @@ cat("  \n###")
 ```{r echo=FALSE, results="asis"}
 treatments = as.data.frame(trees %>% distinct(Species))
 print(kable(species_summary(trees)))
-cat("  \n###")
+cat("  \n####")
 ```
 ### Treatments by Seedlot
 ```{r echo=FALSE, results="asis"}
 treatments = as.data.frame(trees %>% distinct(Seedlot))
 print(kable(seedlot_summary(trees)))
-cat("  \n###")
+cat("  \n####")
 ```
 
-### Plotting
-Plot seedling condition by seedlot
-```{r plot seedling condition echo-FALSE}
-
-all_data$trees %>% 
-  
-  # need to convert seedlot to factor
-  mutate(Seedlot=factor(Seedlot)) %>% 
-  
-  # Relevel condition factors
-  mutate(Condition=fct_relevel(Condition,"Missing","Moribund","Poor","Fair","Good")) %>% # reorder levels
-  
-  # Create plot summaries
-  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
-  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
-  
-  # Let's create plot means and error bars
-  ungroup() %>% 
-  group_by(Species,Seedlot,Condition) %>% 
-  summarise(Condition.Mean=mean(n)) %>% 
-  
-  # Plotting
-  ggplot()+
-  aes(x=Seedlot,y=Condition.Mean,color=Condition,fill=Condition)+
-  geom_bar(stat="Identity")+
-  facet_wrap(~Species,ncol=3,scales="free_x")+
-  theme(legend.position = "bottom")
-
-
-
-```
-
-
-### Spatial analysis
-```{r echo=FALSE,results="asis"}
-  points <- st_as_sf(x = all_data$trees %>% mutate(Condition=fct_relevel(Condition,"Missing","Moribund","Poor","Fair","Good")), coords = c("Lat", "Lon"), crs = "+proj=longlat")
-  
-  #TODO: Reorder ledged, leaflet only supports alphabetical ledgends maybe use ggplot instead? 
-  mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
-```
 ### Temperature
-```{r echo=FALSE,results="asis"}
-  climate_stats = temperature_summary(climate, 0)  %>% arrange(ClimateStationID)
-  kable(climate_stats)
-  
-  ggplot(data=climate_stats, aes(x=ClimateStationID, y=num_events, fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
-  
-  #magnitude must be cast to character before numeric or conversion issues arrive
-  ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at ClimateStationID")
-  
-  ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(duration)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
-  
-  cat("   \n")  
-  
-  climate_stats = temperature_events(climate, 0)
-  for(table in 1:length(climate_stats)){
-    cat("   \n###", names(climate_stats[table]))
-    print(kable(climate_stats[[table]]))
-  }
+```{r echo=FALSE, results="asis"}
+climate_stats = temperature_events(climate, 0)
+for(table in 1:length(climate_stats)){
+  cat("   \n####", names(climate_stats[table]))
+  print(kable(climate_stats[[table]]))
+}
 ```
+
+## Site Maps
+```{r echo=FALSE,results="asis"}
+#tmap_mode("view") #Interactive view mode not currently support by R-Markdown
+for (site in sites$FID){
+  points <- st_as_sf(x = all_data$trees %>% filter(FID == site) %>% mutate(Condition=fct_relevel(Condition,"Good","Fair", "Poor", "Moribund","Dead", "Missing")), coords = c("Lat", "Lon"), crs = "+proj=longlat")
+ map = tm_shape(points["Condition"]) + tm_view(set.zoom.limits = c(18,24)) + tm_dots(size =0.75, col="Condition", palette=c(Good='green', Fair='yellow', Poor='orange', Moribund='red', Dead='black', Missing='blue', 'purple')) + tm_layout(site, legend.outside=TRUE, legend.title.size=1, legend.text.size = 0.6)
+  cat("  \n###",  site, "  \n")
+print(map)
+cat("  \n")
+#mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
+}
+
+```
+
+
+
 
