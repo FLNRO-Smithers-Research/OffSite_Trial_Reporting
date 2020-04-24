@@ -32,8 +32,10 @@ climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
 sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of 
-climate_stats = temperature_summary(climate, 0)  %>% arrange(ClimateStationID)
-condition_colours = c(Missing='blue', Dead='black', Moribund='red', Poor='orange', Fair='yellow', Good='green','purple')
+climate_stats = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID)
+#Define custom colour scheme, though we are using theme_few() which has defualt colour ramps, they make our plots look like easter egges, Rules 3, 4, 7
+#TODO: Reduce contrast in palette Rule 5
+condition_colours = c(Missing='black', Dead='red', Moribund='orange', Poor='yellow', Fair='green', Good='darkgreen','purple') #Purple is missing data, if you see this color in charts there is incomplete records for trees 
 ```
 # Study Information
 ## Map
@@ -54,7 +56,6 @@ kable(seedlots %>% select(Seedlot, Local.place.name, Species, Code, Provenance.d
 
 ## Seedling condition by seedlot
 ```{r echo=FALSE}
-#TODO: Convert to % instead of count
 trees %>% 
   
   # need to convert seedlot to factor
@@ -72,9 +73,11 @@ trees %>%
   group_by(Species,Seedlot,Condition) %>% 
   summarise(Condition.Mean=mean(n)) %>% 
   
+  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+  
   # Plotting
   ggplot()+
-  aes(x=Seedlot,y=Condition.Mean,fill=Condition)+
+  aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
   geom_bar(stat="Identity")+
   facet_wrap(~Species,ncol=3,scales="free_x")+
   theme(legend.position = "bottom")+
@@ -83,16 +86,12 @@ trees %>%
 
 ## Temperature
 ```{r echo=FALSE,results="asis"}
-
-
-
-ggplot(data=climate_stats, aes(x=ClimateStationID, y=num_events, fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Number of events below threshold")
+ggplot(data = climate_stats %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold")
 
 #magnitude must be cast to character before numeric or conversion issues arrive
-ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Maximum Magnitude at ClimateStationID")
+ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)))) + geom_bar(stat="identity") + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Maximum Magnitude at ClimateStationID")
 
-ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(duration)), fill=ClimateStationID)) + geom_bar(stat="identity") + theme(axis.title.x=element_blank(), axis.text.x=element_blank(), axis.title.y=element_blank()) + ggtitle("Hours Below Threshold")
-
+ggplot(data = climate_stats %>% select(ClimateStationID, frost_duration, hard_frost_duration) %>% gather(Threshold, duration, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(duration), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Hours Below Threshold")
 ```
 
 # Statistical Comparisons
@@ -138,10 +137,13 @@ cat("  \n####")
 
 ### Temperature
 ```{r echo=FALSE, results="asis"}
-climate_stats = temperature_events(climate, 0)
-for(table in 1:length(climate_stats)){
-  cat("   \n####", names(climate_stats[table]))
-  print(kable(climate_stats[[table]]))
+frost_stats = temperature_events(climate, 0)
+hard_frost_stats = temperature_events(climate, -4)
+for(table in 1:length(frost_stats)){
+  cat("   \n#### Frost", names(frost_stats[table]))
+  print(kable(frost_stats[[table]]))
+  cat("   \n#### Hard Frost", names(hard_frost_stats[table]))
+  print(kable(hard_frost_stats[[table]]))
 }
 ```
 

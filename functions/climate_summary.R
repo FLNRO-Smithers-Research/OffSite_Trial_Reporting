@@ -5,18 +5,36 @@ library(datetime)
 #Input is a data frame, containing feilds "site", "date", and "temp", threshold is numeric of
 #same unit as "temp" column.
 #Returns Summary of all sites suitable for plotting.
-temperature_summary <- function(climate, threshold){
+temperature_summary <- function(climate, threshold, threshold_2=NULL){
   ClimateStationID <- unique(climate[,c("ClimateStationID")])
   site_stats = list()
   for(this_site in ClimateStationID){ #Calculate statistics for each site independantly
     active_climate = climate %>% filter(ClimateStationID == this_site & ClimateVar == "temp")
     events = find_events(active_climate, threshold)
     df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
-    colnames(df) <- c("date", "duration", "magnitude")
-    site_stats[[this_site]] <- c(this_site, length(df[["magnitude"]]), max(as.numeric(df[["magnitude"]])), sum(as.numeric(df[["duration"]])))
+    colnames(df) <- c("date", "frost_duration", "frost_magnitude")
+    if(!is.null(threshold_2)){
+      events2 = find_events(active_climate, threshold_2)
+      df2 = as.data.frame(t(matrix(unlist(events2), nrow=length(unlist(events2[1])))))
+      colnames(df2) <- c("date", "hard_frost_duration", "hard_frost_magnitude")
+      print(df)
+      print(df2)
+      site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])), 
+          length(df2[["hard_frost_magnitude"]]), sum(as.numeric(df2[["hard_frost_duration"]])))
+    }
+    else{
+      site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])))
+    }
+    
   }
   event_df = as.data.frame(t(matrix(unlist(site_stats), nrow=length(unlist(site_stats[1])))))
-  colnames(event_df) <- c("ClimateStationID", "num_events", "max_magnitude", "duration")
+  if(!is.null(threshold_2)){
+    colnames(event_df) <- c("ClimateStationID", "num_frost_events", "max_magnitude", "frost_duration", "num_hard_frost_events", "hard_frost_duration")
+    print(event_df)
+  }
+  else{
+    colnames(event_df) <- c("ClimateStationID", "num_events", "max_magnitude", "duration")
+  }
   return(event_df)
 }
 
