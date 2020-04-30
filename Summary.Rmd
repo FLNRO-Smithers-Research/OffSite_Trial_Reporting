@@ -10,7 +10,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 
 library(tidyverse)
 library(knitr)
@@ -33,6 +33,20 @@ plots = all_data$plots
 meta = all_data$meta
 sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of 
 climate_stats = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID)
+tree_summary = trees %>% 
+  
+  # need to convert seedlot to factor
+  mutate(Seedlot=factor(Seedlot)) %>% 
+  
+  # Relevel condition factors
+  mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good")) %>% # reorder levels
+  
+  # Create plot summaries
+  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
+  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
+  
+  # Let's create plot means and error bars
+  ungroup()
 #Define custom colour scheme, though we are using theme_few() which has defualt colour ramps, they make our plots look like easter egges, Rules 3, 4, 7
 #TODO: Reduce contrast in palette Rule 5
 condition_colours = c(Missing='black', Dead='red', Moribund='orange', Poor='yellow', Fair='green', Good='darkgreen','purple') #Purple is missing data, if you see this color in charts there is incomplete records for trees 
@@ -53,23 +67,55 @@ kable(seedlots %>% select(Seedlot, Local.place.name, Species, Code, Provenance.d
 
 # Graphical Comparisons
 
+## Seedling condition by species
+```{r echo=FALSE}
+tree_summary %>% 
+  group_by(Species, Condition) %>% 
+  summarise(Condition.Mean=mean(n)) %>% 
+  
+  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+  
+  # Plotting
+  ggplot()+
+  aes(x=Species,y=Condition.Percent,fill=Condition)+
+  geom_bar(stat="Identity")+
+  theme_few() + scale_fill_manual(values = alpha(condition_colours, .8))
+```
+
+## Seedling condition by trial
+```{r echo=FALSE}
+tree_summary %>% 
+  group_by(FID, Condition) %>% 
+  summarise(Condition.Mean=mean(n)) %>% 
+  
+  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+  
+  # Plotting
+  ggplot()+
+  aes(x=FID,y=Condition.Percent,fill=Condition)+
+  geom_bar(stat="Identity")+
+  theme_few() + theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_manual(values = alpha(condition_colours, .8))
+```
+## Seedling condition by trial and species
+```{r echo=FALSE, fig.height=10}
+tree_summary %>% 
+  group_by(Species,FID,Condition) %>% 
+  summarise(Condition.Mean=mean(n)) %>% 
+  
+  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+  
+  # Plotting
+  ggplot()+
+  aes(x=Species,y=Condition.Percent,fill=Condition)+
+  geom_bar(stat="Identity")+
+  facet_wrap(~FID,ncol=3,scales="free_x")+
+  theme_few() + theme(axis.text.x = element_text(angle = 90))+ scale_fill_manual(values = alpha(condition_colours, .8))
+```
 
 ## Seedling condition by seedlot
 ```{r echo=FALSE}
-trees %>% 
-  
-  # need to convert seedlot to factor
-  mutate(Seedlot=factor(Seedlot)) %>% 
-  
-  # Relevel condition factors
-  mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good")) %>% # reorder levels
-  
-  # Create plot summaries
-  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
-  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
-  
-  # Let's create plot means and error bars
-  ungroup() %>% 
+tree_summary %>% 
   group_by(Species,Seedlot,Condition) %>% 
   summarise(Condition.Mean=mean(n)) %>% 
   
@@ -80,8 +126,24 @@ trees %>%
   aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
   geom_bar(stat="Identity")+
   facet_wrap(~Species,ncol=3,scales="free_x")+
-  theme(legend.position = "bottom")+
   theme_few() + scale_fill_manual(values = alpha(condition_colours, .8))
+```
+
+## Mean of condition class for each species
+```{r echo=FALSE}
+tree_summary %>% 
+  group_by(Species,Condition) %>% 
+  summarise(Condition.Mean=mean(n), Condition.stdev=sd(n))%>% 
+  
+  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+  mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
+  # Plotting
+  ggplot()+
+  aes(x=Condition,y=Condition.Percent)+
+  geom_bar(stat="Identity")+
+  facet_wrap(~Species,ncol=3,scales="free_x")+
+  theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
+  geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.stdev.p, ymax=Condition.Percent+Condition.stdev.p), width=0.4, colour="orange", alpha=0.9, size=1)
 ```
 
 ## Temperature
