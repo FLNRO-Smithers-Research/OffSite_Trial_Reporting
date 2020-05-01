@@ -19,6 +19,7 @@ library(mapview)
 library(tmap)
 library(ggplot2)
 library(ggthemes)
+library(ape)
 source("functions/plot_summary.R")
 source("functions/climate_summary.R")
 
@@ -157,6 +158,63 @@ ggplot(data = climate_stats %>% select(ClimateStationID, frost_duration, hard_fr
 ```
 
 # Statistical Comparisons
+
+## Seedlot by Species
+```{r echo=FALSE,results="asis"}
+  Species = as.data.frame(trees %>% distinct(Species))
+  for(id in 1:nrow(Species)) {
+    feature <- as.vector(Species$Species[[id]])
+    cat("  \n####",  feature, "  \n")
+    print(kable(seedlot_by_species(feature, trees)))
+}
+```
+
+## Condition by Trial
+```{r echo=FALSE, results="asis"}
+  ss = as.data.frame(trees %>% distinct(Species, Seedlot))
+  for(id in 1:nrow(ss)) {
+    feature <- as.vector(c(ss$Seedlot[[id]], as.character(ss$Species[[id]])))
+    cat("  \n####",  feature, "  \n")
+    print(kable(condition_by_trial(feature, trees)))
+}
+
+```
+
+## Spatial Correllation
+```{r echo=FALSE,results="asis"}
+
+  fids = as.data.frame(trees %>% distinct(FID))
+  for(id in 1:nrow(fids)) {
+    feature <- as.vector(fids$FID[[id]])
+    cat("  \n####",  feature, "  \n")
+    tree_list = as.data.frame(trees %>% filter(FID == feature))
+    tree_distance = as.matrix(dist(cbind(tree_list$Lat, tree_list$Lon))) #TODO: Analysis should be done in projected CRS
+    inverse_tree_distance = 1/tree_distance
+    tree_list %>% mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good"))
+    inverse_tree_distance[is.infinite(inverse_tree_distance)] <- 0
+    moran = Moran.I(as.numeric(tree_list$Condition), inverse_tree_distance)
+    cat("  \nObserved: ", moran$observed)
+    cat("  \nExpected: ", moran$expected)
+    cat("  \nStandard Deviation: ", moran$sd)
+    cat("  \np-value: ", moran$p, "  \n---------------------------")
+    #TODO what correleation is considered clustered for this data set?
+    if(moran$p > 0.5){
+      cat("  \nNot Statistically Significant!")
+    }
+    if(moran$observed - .1 > moran$expected){
+       cat("  \nClustered")
+    }
+    else if(moran$observed + .1 < moran$expected){
+       cat("  \nDispursed")
+    }
+    else{
+      cat("  \nRandom")
+    }
+    
+    cat("  \n")
+}
+```
+
 
 ## Temperature
 ```{r echo=FALSE}

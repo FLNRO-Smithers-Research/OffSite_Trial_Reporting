@@ -92,3 +92,32 @@ seedlot_summary <- function(tree_list){
   }
   return(summary)
 }
+
+seedlot_by_species <- function(Sp, tree_list){
+  summary <- data.frame(Seedlot = c("Good", "Fair", "Poor", "Moribund", "Missing"))
+  seedlot <- tree_list %>% filter(Species==Sp) %>% distinct(Seedlot)
+  for (f in 1:nrow(seedlot)){
+    lot = as.character(seedlot$Seedlot[[f]]) #TODO: Put seed lot name here!
+    summary[[lot]] <- c(count=filter(tree_list, Seedlot == seedlot$Seedlot[[f]] & Condition == "Good") %>% count(),
+                                         count=filter(tree_list, Seedlot == seedlot$Seedlot[[f]] & Species==Sp & Condition == "Fair") %>% count(),
+                                         count=filter(tree_list, Seedlot == seedlot$Seedlot[[f]] & Species==Sp & Condition == "Porr") %>% count(),
+                                         count=filter(tree_list, Seedlot == seedlot$Seedlot[[f]] & Species==Sp & Condition == "Moribund") %>% count(),
+                                         count=filter(tree_list, Seedlot == seedlot$Seedlot[[f]] & Species==Sp & Condition == "Missing") %>% count())
+  }
+  return(summary)
+}
+
+condition_by_trial <- function(feature, tree_list){
+  summary <- data.frame(Trial = c("Good", "Fair", "Poor", "Moribund", "Missing"))
+  trial <- tree_list %>% filter(Species==feature[2] & Seedlot==feature[1]) %>% distinct(FID)
+  for (f in 1:nrow(trial)){
+    plot = as.character(trial$FID[[f]]) #TODO: Put seed lot name here!
+    summary[[plot]] <- c(count=filter(tree_list, FID == trial$FID[[f]] & Species==feature[2] & Seedlot==feature[1] & Condition == "Good") %>% count(),
+                        count=filter(tree_list, FID == trial$FID[[f]] & Species==feature[2] & Seedlot==feature[1] & Condition == "Fair") %>% count(),
+                        count=filter(tree_list, FID == trial$FID[[f]] & Species==feature[2] & Seedlot==feature[1] & Condition == "Porr") %>% count(),
+                        count=filter(tree_list, FID == trial$FID[[f]] & Species==feature[2] & Seedlot==feature[1] & Condition == "Moribund") %>% count(),
+                        count=filter(tree_list, FID == trial$FID[[f]] & Species==feature[2] & Seedlot==feature[1] & Condition == "Missing") %>% count())
+  }
+  return(summary)
+}
+
