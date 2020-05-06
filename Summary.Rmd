@@ -134,17 +134,19 @@ tree_summary %>%
 ```{r echo=FALSE}
 tree_summary %>% 
   group_by(Species,Condition) %>% 
-  summarise(Condition.Mean=mean(n), Condition.stdev=sd(n))%>% 
+  summarise(Condition.Mean=mean(n), Condition.stdev=sd(n), Condition.count = n())%>% 
   
   mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
   mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
+  mutate(Condition.sterror = Condition.stdev/sqrt(Condition.count)) %>%
+  mutate(Condition.sterror.p = Condition.sterror/sum(Condition.Mean)) %>%
   # Plotting
   ggplot()+
   aes(x=Condition,y=Condition.Percent)+
   geom_bar(stat="Identity")+
   facet_wrap(~Species,ncol=3,scales="free_x")+
   theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
-  geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.stdev.p, ymax=Condition.Percent+Condition.stdev.p), width=0.4, colour="orange", alpha=0.9, size=1)
+  geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.sterror.p, ymax=Condition.Percent+Condition.sterror.p), width=0.4, colour="orange", alpha=0.9, size=1)
 ```
 
 ## Temperature
