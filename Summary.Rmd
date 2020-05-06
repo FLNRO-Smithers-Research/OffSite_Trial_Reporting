@@ -20,6 +20,7 @@ library(tmap)
 library(ggplot2)
 library(ggthemes)
 library(ape)
+library(lubridate)
 source("functions/plot_summary.R")
 source("functions/climate_summary.R")
 
@@ -33,7 +34,6 @@ climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
 sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of 
-climate_stats = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID)
 tree_summary = trees %>% 
   
   # need to convert seedlot to factor
@@ -55,10 +55,10 @@ condition_colours = c(Missing='black', Dead='red', Moribund='orange', Poor='yell
 # Study Information
 ## Map
 ```{r echo=FALSE,results="asis"}
-  points <- st_as_sf(x = sites %>% mutate(FID), coords = c("Lon", "Lat"), crs = "+proj=longlat")
-  
-  #TODO: Prevent Labels overlapping, increase bounding box size
-  mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap")) %>% leafem::addStaticLabels(label = points$FID, noHide = FALSE, direction = 'auto', textsize='20px')
+points <- st_as_sf(x = sites %>% mutate(FID), coords = c("Lon", "Lat"), crs = "+proj=longlat")
+
+#TODO: Prevent Labels overlapping, increase bounding box size
+mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap")) %>% leafem::addStaticLabels(label = points$FID, noHide = FALSE, direction = 'auto', textsize='20px')
 ```
 
 ## Seedlots
@@ -149,76 +149,67 @@ tree_summary %>%
 
 ## Temperature
 ```{r echo=FALSE,results="asis"}
-ggplot(data = climate_stats %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold")
+#TODO What date ranges should be applied to this data
+ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID) %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold")
 
 #magnitude must be cast to character before numeric or conversion issues arrive
-ggplot(data=climate_stats, aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)))) + geom_bar(stat="identity") + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Maximum Magnitude at ClimateStationID")
+ggplot(data=temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID), aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)))) + geom_bar(stat="identity") + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Maximum Magnitude at ClimateStationID")
 
-ggplot(data = climate_stats %>% select(ClimateStationID, frost_duration, hard_frost_duration) %>% gather(Threshold, duration, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(duration), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Hours Below Threshold")
+ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID) %>% select(ClimateStationID, frost_duration, hard_frost_duration) %>% gather(Threshold, duration, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(duration), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Hours Below Threshold")
 ```
 
 # Statistical Comparisons
 
-## Seedlot by Species
-```{r echo=FALSE,results="asis"}
-  Species = as.data.frame(trees %>% distinct(Species))
-  for(id in 1:nrow(Species)) {
-    feature <- as.vector(Species$Species[[id]])
-    cat("  \n####",  feature, "  \n")
-    print(kable(seedlot_by_species(feature, trees)))
-}
-```
-
-## Condition by Trial
-```{r echo=FALSE, results="asis"}
-  ss = as.data.frame(trees %>% distinct(Species, Seedlot))
-  for(id in 1:nrow(ss)) {
-    feature <- as.vector(c(ss$Seedlot[[id]], as.character(ss$Species[[id]])))
-    cat("  \n####",  feature, "  \n")
-    print(kable(condition_by_trial(feature, trees)))
-}
-
-```
-
 ## Spatial Correllation
 ```{r echo=FALSE,results="asis"}
 
-  fids = as.data.frame(trees %>% distinct(FID))
-  for(id in 1:nrow(fids)) {
-    feature <- as.vector(fids$FID[[id]])
-    cat("  \n####",  feature, "  \n")
-    tree_list = as.data.frame(trees %>% filter(FID == feature))
-    tree_distance = as.matrix(dist(cbind(tree_list$Lat, tree_list$Lon))) #TODO: Analysis should be done in projected CRS
-    inverse_tree_distance = 1/tree_distance
-    tree_list %>% mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good"))
-    inverse_tree_distance[is.infinite(inverse_tree_distance)] <- 0
-    moran = Moran.I(as.numeric(tree_list$Condition), inverse_tree_distance)
-    cat("  \nObserved: ", moran$observed)
-    cat("  \nExpected: ", moran$expected)
-    cat("  \nStandard Deviation: ", moran$sd)
-    cat("  \np-value: ", moran$p, "  \n---------------------------")
-    #TODO what correleation is considered clustered for this data set?
-    if(moran$p > 0.5){
-      cat("  \nNot Statistically Significant!")
-    }
-    if(moran$observed - .1 > moran$expected){
-       cat("  \nClustered")
-    }
-    else if(moran$observed + .1 < moran$expected){
-       cat("  \nDispursed")
-    }
-    else{
-      cat("  \nRandom")
-    }
-    
-    cat("  \n")
+fids = as.data.frame(trees %>% distinct(FID))
+for(id in 1:nrow(fids)) {
+  feature <- as.vector(fids$FID[[id]])
+  cat("  \n####",  feature, "  \n")
+  tree_list = as.data.frame(trees %>% filter(FID == feature))
+  tree_distance = as.matrix(dist(cbind(tree_list$Lat, tree_list$Lon))) #TODO: Analysis should be done in projected CRS
+  inverse_tree_distance = 1/tree_distance
+  tree_list %>% mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good"))
+  inverse_tree_distance[is.infinite(inverse_tree_distance)] <- 0
+  moran = Moran.I(as.numeric(tree_list$Condition), inverse_tree_distance)
+  cat("  \nObserved: ", moran$observed)
+  cat("  \nExpected: ", moran$expected)
+  cat("  \nStandard Deviation: ", moran$sd)
+  cat("  \np-value: ", moran$p, "  \n---------------------------")
+  #TODO what correleation is considered clustered for this data set?
+  if(moran$p > 0.5){
+    cat("  \nNot Statistically Significant!")
+  }
+  if(moran$observed - .1 > moran$expected){
+    cat("  \nClustered")
+  }
+  else if(moran$observed + .1 < moran$expected){
+    cat("  \nDispursed")
+  }
+  else{
+    cat("  \nRandom")
+  }
+  
+  cat("  \n")
 }
 ```
 
 
 ## Temperature
-```{r echo=FALSE}
-kable(climate_stats)
+```{r echo=FALSE, results="asis"}
+for (year in year(as.character(min(as.date(as.character(climate$Date))))):year(as.character(max(as.date(as.character(climate$Date)))))){
+  cat("  \n### ", year)
+  cat("   \n#### Entire Growing Seasion")
+  print(kable(temperature_summary(climate, 0, -4, paste(year, '01-01', sep='-'), paste(year, '12-31', sep='-'))  %>% arrange(ClimateStationID)))
+  cat("   \n#### Early Spring")
+  print(kable(temperature_summary(climate, 0, -4, paste(year, '01-01', sep='-'), paste(year, '05-31', sep='-'))  %>% arrange(ClimateStationID)))
+  cat("   \n#### Summer")
+  print(kable(temperature_summary(climate, 0, -4, paste(year, '06-01', sep='-'), paste(year, '08-31', sep='-'))  %>% arrange(ClimateStationID)))
+  cat("   \n#### Atumn")
+  print(kable(temperature_summary(climate, 0, -4, paste(year, '09-01', sep='-'), paste(year, '12-31', sep='-'))  %>% arrange(ClimateStationID)))
+}
+
 ```
 
 # Appendix
@@ -228,11 +219,11 @@ kable(climate_stats)
 ### Plot Summaries
 ```{r echo=FALSE,results="asis"}
 
-  fids = as.data.frame(trees %>% distinct(FID))
-  for(id in 1:nrow(fids)) {
-    feature <- as.vector(fids$FID[[id]])
-    cat("  \n####",  feature, "  \n")
-    print(kable(plot_summary(filter(trees, FID == feature))))
+fids = as.data.frame(trees %>% distinct(FID))
+for(id in 1:nrow(fids)) {
+  feature <- as.vector(fids$FID[[id]])
+  cat("  \n####",  feature, "  \n")
+  print(kable(plot_summary(filter(trees, FID == feature))))
 }
 ```
 
@@ -255,6 +246,27 @@ print(kable(seedlot_summary(trees)))
 cat("  \n####")
 ```
 
+## Seedlot by Species
+```{r echo=FALSE,results="asis"}
+Species = as.data.frame(trees %>% distinct(Species))
+for(id in 1:nrow(Species)) {
+  feature <- as.vector(Species$Species[[id]])
+  cat("  \n####",  feature, "  \n")
+  print(kable(seedlot_by_species(feature, trees)))
+}
+```
+
+## Condition by Trial
+```{r echo=FALSE, results="asis"}
+ss = as.data.frame(trees %>% distinct(Species, Seedlot))
+for(id in 1:nrow(ss)) {
+  feature <- as.vector(c(ss$Seedlot[[id]], as.character(ss$Species[[id]])))
+  cat("  \n####",  feature, "  \n")
+  print(kable(condition_by_trial(feature, trees)))
+}
+
+```
+
 ### Temperature
 ```{r echo=FALSE, results="asis"}
 frost_stats = temperature_events(climate, 0)
@@ -272,11 +284,11 @@ for(table in 1:length(frost_stats)){
 #tmap_mode("view") #Interactive view mode not currently support by R-Markdown
 for (site in sites$FID){
   points <- st_as_sf(x = all_data$trees %>% filter(FID == site) %>% mutate(Condition=fct_relevel(Condition,"Good","Fair", "Poor", "Moribund","Dead", "Missing")), coords = c("Lat", "Lon"), crs = "+proj=longlat")
- map = tm_shape(points["Condition"]) + tm_view(set.zoom.limits = c(18,24)) + tm_dots(size =0.75, col="Condition", palette=c(Good='green', Fair='yellow', Poor='orange', Moribund='red', Dead='black', Missing='blue', 'purple')) + tm_layout(site, legend.outside=TRUE, legend.title.size=1, legend.text.size = 0.6)
+  map = tm_shape(points["Condition"]) + tm_view(set.zoom.limits = c(18,24)) + tm_dots(size =0.75, col="Condition", palette=c(Good='green', Fair='yellow', Poor='orange', Moribund='red', Dead='black', Missing='blue', 'purple')) + tm_layout(site, legend.outside=TRUE, legend.title.size=1, legend.text.size = 0.6)
   cat("  \n###",  site, "  \n")
-print(map)
-cat("  \n")
-#mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
+  print(map)
+  cat("  \n")
+  #mapview(points["Condition"], col.regions = c("Missing" = "Black", "Moribund" = "Red", "Poor" = "Orange", "Fair" =  "Yellow", "Good" = "Green"), lwd = 0, cex = 5)
 }
 
 ```

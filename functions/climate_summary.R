@@ -5,23 +5,44 @@ library(datetime)
 #Input is a data frame, containing feilds "site", "date", and "temp", threshold is numeric of
 #same unit as "temp" column.
 #Returns Summary of all sites suitable for plotting.
-temperature_summary <- function(climate, threshold, threshold_2=NULL){
+temperature_summary <- function(climate, threshold, threshold_2=NULL, start=NULL, end=NULL){
+  if(is.null(start)){
+    start = "1970-01-01"
+  }
+  if(is.null(end)){
+    end = "2970-01-01"
+  }
   ClimateStationID <- unique(climate[,c("ClimateStationID")])
   site_stats = list()
   for(this_site in ClimateStationID){ #Calculate statistics for each site independantly
-    active_climate = climate %>% filter(ClimateStationID == this_site & ClimateVar == "temp")
+    active_climate = climate %>% filter(ClimateStationID == this_site & ClimateVar == "temp" & as.Date(Date) >= as.Date(start) & as.Date(Date) <= as.Date(end) )
     events = find_events(active_climate, threshold)
-    df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
-    colnames(df) <- c("date", "frost_duration", "frost_magnitude")
-    if(!is.null(threshold_2)){
-      events2 = find_events(active_climate, threshold_2)
-      df2 = as.data.frame(t(matrix(unlist(events2), nrow=length(unlist(events2[1])))))
-      colnames(df2) <- c("date", "hard_frost_duration", "hard_frost_magnitude")
-      site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])), 
-          length(df2[["hard_frost_magnitude"]]), sum(as.numeric(df2[["hard_frost_duration"]])))
+    if(length(events) > 0){
+      df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
+      colnames(df) <- c("date", "frost_duration", "frost_magnitude")
+      if(!is.null(threshold_2)){
+        events2 = find_events(active_climate, threshold_2)
+        if(length(events2) > 0){
+          df2 = as.data.frame(t(matrix(unlist(events2), nrow=length(unlist(events2[1])))))
+          colnames(df2) <- c("date", "hard_frost_duration", "hard_frost_magnitude")
+          site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])), 
+                                       length(df2[["hard_frost_magnitude"]]), sum(as.numeric(df2[["hard_frost_duration"]])))
+        }
+        else{
+          site_stats[[this_site]] <- t(c(this_site, 0, 0, 0, 0, 0))
+        }
+      }
+      else{
+        site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])))
+      }
     }
     else{
-      site_stats[[this_site]] <- c(this_site, length(df[["frost_magnitude"]]), max(as.numeric(df[["frost_magnitude"]])), sum(as.numeric(df[["frost_duration"]])))
+      if(!is.null(threshold_2)){
+        site_stats[[this_site]] <- t(c(this_site, 0, 0, 0, 0, 0))
+      }
+      else{
+        site_stats[[this_site]] <- t(c(this_site, 0, 0, 0))
+      }
     }
     
   }
@@ -37,15 +58,26 @@ temperature_summary <- function(climate, threshold, threshold_2=NULL){
 
 #Input is a data frame, containing feilds "site", "date", and "temp", threshold is numeric of
 #same unit as "temp" column.
-#Returns list of all events along with julian time, duration, and magnitude.
-temperature_events <- function(climate, threshold){
+#Returns list of all events along with date, duration, and magnitude.
+temperature_events <- function(climate, threshold, start=NULL, end=NULL){
+  if(is.null(start)){
+    start = "1970-01-01"
+  }
+  if(is.null(end)){
+    end = "2970-01-01"
+  }
   ClimateStationID <- unique(climate[,c("ClimateStationID")])
   all_events = list()
   for(this_site in ClimateStationID){ #Calculate statistics for each site independantly
-    active_climate = climate %>% filter(ClimateStationID == this_site)
+    active_climate = climate %>% filter(ClimateStationID == this_site & as.Date(Date) >= as.Date(start) & as.Date(Date) <= as.Date(end))
     events = find_events(active_climate, threshold)
-    event_df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
-    colnames(event_df) <- c("Julean Date", "Duration", "Magnitude")
+    if(length(events) > 0){
+      event_df = as.data.frame(t(matrix(unlist(events), nrow=length(unlist(events[1])))))
+    }
+    else{
+      event_df = as.data.frame(t(c(0,0,0,0)))
+    }
+    colnames(event_df) <- c("Date", "Day of Year", "Duration", "Magnitude")
     all_events[[this_site]] <- event_df
   }
   return(all_events)
@@ -54,41 +86,46 @@ temperature_events <- function(climate, threshold){
 find_events <- function(active_climate, threshold){
   event_length = 0
   event_date = 0
+  day_of_year = 0
   magnitude = threshold
   events = list()
   num_events = 0
-  for (period in 1:nrow(active_climate)){ 
-    if(is.na(active_climate[["Value"]][[period]])){ #Check for end of data
-      if (event_length > 0){ #If an event was detected but, at end of data save event
-        events[[num_events]] <- c(event_date, event_length, magnitude)
-        event_length = 0
-        magnitude = threshold
+  if(nrow(active_climate) > 0){
+    for (period in 1:nrow(active_climate)){ 
+      if(is.na(active_climate[["Value"]][[period]])){ #Check for end of data
+        if (event_length > 0){ #If an event was detected but, at end of data save event
+          events[[num_events]] <- c(event_date, event_length, magnitude)
+          event_length = 0
+          magnitude = threshold
+        }
       }
-    }
-    else {
-      #if loop is in an event, and temperature below threshold add to events duration, and check magnitude
-      if (event_length > 0 && active_climate[["Value"]][[period]] < threshold){
-        event_length = event_length + 1
-        magnitude = min(magnitude, active_climate[["Value"]][[period]])
-      }
-      #if loop is not in an event, and temperature below threshold create event and set magnitude
-      if (event_length == 0 && active_climate[["Value"]][[period]] < threshold){
-        event_length = event_length + 1
-        num_events = num_events + 1
-        event_date = as.numeric(julian(as.Date(as.character(active_climate[["Date"]][[period]]))))
-        magnitude = active_climate[["Value"]][[period]]
-      }
-      #if loop is in an event, and temperature above theshold write out event
-      if (event_length > 0 && active_climate[["Value"]][[period]] >= threshold){
-        events[[num_events]] <- c(event_date, event_length, (as.numeric(magnitude)*(-1)))
-        event_length = 0
-        magnitude = threshold
+      else {
+        #if loop is in an event, and temperature below threshold add to events duration, and check magnitude
+        if (event_length > 0 && active_climate[["Value"]][[period]] < threshold){
+          event_length = event_length + 1
+          magnitude = min(magnitude, active_climate[["Value"]][[period]])
+        }
+        #if loop is not in an event, and temperature below threshold create event and set magnitude
+        if (event_length == 0 && active_climate[["Value"]][[period]] < threshold){
+          event_length = event_length + 1
+          num_events = num_events + 1
+          event_date = as.character(active_climate[["Date"]][[period]])
+          day_of_year = lubridate::yday(event_date)
+          magnitude = active_climate[["Value"]][[period]]
+        }
+        #if loop is in an event, and temperature above theshold write out event
+        if (event_length > 0 && active_climate[["Value"]][[period]] >= threshold){
+          events[[num_events]] <- c(event_date, day_of_year, event_length, (as.numeric(magnitude)*(-1)))
+          event_length = 0
+          magnitude = threshold
+        }
       }
     }
   }
   #Write any remaining data at end of loop
   if (event_length > 0){
-    events[[num_events]] <- c(event_date, event_length, (as.numeric(magnitude)*(-1)))
+    events[[num_events]] <- c(as.character(event_date), day_of_year, event_length, (as.numeric(magnitude)*(-1)))
   }
   return(events)
 }
+
