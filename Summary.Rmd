@@ -195,7 +195,6 @@ for(id in 1:nrow(fids)) {
 }
 ```
 
-
 ## Temperature
 ```{r echo=FALSE, results="asis"}
 for (year in year(as.character(min(as.date(as.character(climate$Date))))):year(as.character(max(as.date(as.character(climate$Date)))))){

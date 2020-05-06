@@ -370,6 +370,59 @@ summary {
 <p>Scripts to show statistical and graphical output for species trial data</p>
 <div id="loading-data" class="section level2">
 <h2>Loading Data</h2>
+<p>All data is contained within the all_data data frame, data can be added to this directly, or alternatively can be done using the build data frame fuction.</p>
+<p>The build data frame function will load all the csv files in the data directory, thies files have the following structure</p>
+<div id="seedlots" class="section level3">
+<h3>Seedlots</h3>
+<p>There is one file named seedlots.csv, additionall seedlots can be added by appending rows to this table.</p>
+</div>
+<div id="metadata" class="section level3">
+<h3>Metadata</h3>
+<p>The meta.csv file has a list of all the study site fid’s date collected and the person who collected the data.</p>
+</div>
+<div id="field-cards" class="section level3">
+<h3>Field Cards</h3>
+<p>For every fid in Metadata there should be a CSV with a corresponding name FID_<FID>.csv with the following attributes FID, Tree, Plot, Species, Seedlot, Condition, Comment</p>
+</div>
+<div id="plot" class="section level3">
+<h3>Plot</h3>
+<p>For every fid there should also be a file <FID>_plot.csv, plot files contain the geographic location of the site the contain the following feilds FID: Site where plot is located Plot: Plot number Orientation: Rotation of the plot in degress relative to true north. Lat, Lon: The position of tree 1 in the plot Spacing: Distance in meters between trees planted Height, Width: This determins the number of trees in the plot and makes the assumption that when planting rows go top-bottom, then bottom-top alternating while moving each row the distance of spacing to the right.</p>
+</div>
+<div id="climate-date" class="section level3">
+<h3>Climate Date</h3>
+<p>For every site there is a file <site>_climate.csv containing the following information ClimateStationID,date,temp</p>
+</div>
+</div>
+<div id="functions" class="section level2">
+<h2>Functions</h2>
+<p>All functions are available within the Functions folder</p>
+<div id="tree_position" class="section level3">
+<h3>tree_position</h3>
+<p>This function is used by the data loader, and calculates tree position based on plot information</p>
+</div>
+<div id="plot_summary" class="section level3">
+<h3>plot_summary</h3>
+<p>plot_summary, this function takes in a list of trees and returns the survival rate for each plot, grouped by FID</p>
+<p>treatment_summary, this function takes in a list of trees and returns the survival rate for each seedlot, grouped by species</p>
+<p>treatment_summary, this function takes in a list of trees and returns the survival rate for each seedlot</p>
+<p>species_summary, this function takes in a list of trees and returns the survival rate for each species across all trials</p>
+<p>condition_by_trial, this function takes a list of trees and returns the survival rate for each site FID</p>
+</div>
+<div id="temperature" class="section level3">
+<h3>Temperature</h3>
+<div id="temperature_summary" class="section level4">
+<h4>temperature_summary</h4>
+<p>This function returns a summary table including how many times the threshold was crossed, for how long, and the magnitude (maximum degrees below threshold), resutls are grouped by climate station_id Arguments: climate (mandatory): list of climate data threshold (mandatory): degree C of threshold. *Most likely you want 0 threshold2 (optional): if set function will calculate 2 thresholds (ie for hard frost), note that adding this variable function returns a larger data frame start (optional): used to filter start time to search for events, if left blank defaults to unix epoch (Jan 1, 1970), if you have older data do not leave blank! end (optional): used to filter end time for summary produces, if left black defaults to unix epoch +1000 years (Jan 1, 2970)</p>
+</div>
+<div id="temperature_event" class="section level4">
+<h4>temperature_event</h4>
+<p>This function returns a list of events below threshold the date they happend, and for how long Arguments: climate (mandatory): list of climate data threshold (mandatory): degree C of threshold. *Most likely you want 0 start (optional): used to filter start time to search for events, if left blank defaults to unix epoch (Jan 1, 1970), if you have older data do not leave blank! end (optional): used to filter end time for summary produces, if left black defaults to unix epoch +1000 years (Jan 1, 2970)</p>
+</div>
+</div>
+<div id="find_events" class="section level3">
+<h3>find_events</h3>
+<p>This is a helper function, and should not be called directly</p>
+</div>
 </div>
 </div>
 
