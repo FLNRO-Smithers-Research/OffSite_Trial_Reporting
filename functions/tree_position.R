@@ -11,7 +11,7 @@ tree_position <-function(tree, plots) {
   if(nrow(plot)==0){
     return(c(Lat = 0, Lon = 0))
   }
-  t = tree$Tree
+  t = tree$TreeID
   w = plot$Width
   h = plot$Height
   s = plot$Spacing

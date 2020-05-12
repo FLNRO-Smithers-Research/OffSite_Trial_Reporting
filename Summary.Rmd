@@ -11,15 +11,22 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE)
-
+#install.packages('bcmapsdata', repos='https://bcgov.github.io/drat/')
+library(bcdata)
+library(bcmaps)
+library(bcmapsdata)
 library(tidyverse)
 library(knitr)
+library(kableExtra)
 library(sf)
+library(flextable)
+library(spData)
 library(mapview)
 library(tmap)
 library(ggplot2)
 library(ggthemes)
 library(ape)
+library(leaflet)
 library(lubridate)
 source("functions/plot_summary.R")
 source("functions/climate_summary.R")
@@ -33,124 +40,182 @@ trees = all_data$trees
 climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
-sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of 
-tree_summary = trees %>% 
-  
-  # need to convert seedlot to factor
-  mutate(Seedlot=factor(Seedlot)) %>% 
-  
-  # Relevel condition factors
-  mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good")) %>% # reorder levels
-  
-  # Create plot summaries
-  group_by(FID,Plot,Species,Seedlot,Condition) %>% 
-  summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
-  
-  # Let's create plot means and error bars
-  ungroup()
+sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of entire site
+years = year(as.character(min(as.date(as.character(trees$Date))))):year(as.character(max(as.date(as.character(trees$Date)))))
+tree_summary=list()
+for(year in years){
+  tree_summary[[year]] <- trees %>% 
+    filter(year(as.character(Date)) == year) %>%
+    # need to convert seedlot to factor
+    mutate(Seedlot=factor(Seedlot)) %>% 
+    
+    # Relevel condition factors
+    mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good")) %>% # reorder levels
+    
+    # Create plot summaries
+    group_by(FID,Plot,Species,Seedlot,Condition) %>% 
+    summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
+    ungroup()
+}
 #Define custom colour scheme, though we are using theme_few() which has defualt colour ramps, they make our plots look like easter egges, Rules 3, 4, 7
 #TODO: Reduce contrast in palette Rule 5
 condition_colours = c(Missing='black', Dead='red', Moribund='orange', Poor='yellow', Fair='green', Good='darkgreen','purple') #Purple is missing data, if you see this color in charts there is incomplete records for trees 
+
 ```
 # Study Information
 ## Map
 ```{r echo=FALSE,results="asis"}
 points <- st_as_sf(x = sites %>% mutate(FID), coords = c("Lon", "Lat"), crs = "+proj=longlat")
-
+center = st_coordinates(points$geometry) %>% matrix(ncol=2,byrow=FALSE)
 #TODO: Prevent Labels overlapping, increase bounding box size
-mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap")) %>% leafem::addStaticLabels(label = points$FID, noHide = FALSE, direction = 'auto', textsize='20px')
+mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap"), labelOptions=leaflet::labelOptions(noHide=TRUE), clusterOptions=leaflet::markerClusterOptions())
 ```
 
 ## Seedlots
 ```{r echo=FALSE,results="asis"}
-kable(seedlots %>% select(Seedlot, Local.place.name, Species, Code, Provenance.description))
+lot_table = as.data.frame(t(seedlots %>% select(Seedlot, Species, Code, Provenance = Provenance.description, Lat, Long, Elevation, 'Mean annual temperature (°C)' = MAT, "Mean wamest month temperature (°C)" = MWMT, "Mean coldest month temperature (°C)" = MCMT, "Number of frost free days" = NFFD, "Continious frost-free period (days)" = FFP, "Mean annual precipitation (mm" = MAP, "Mean summer precipitation (mm)" = MSP, "Precipitation as snow (mm)" = PAS)))
+colnames(lot_table) = as.character(unlist(lot_table[1,]))
+kable(lot_table[-1, ]) %>% kable_styling(bootstrap_options = c("striped", "hover"), font_size = 12) %>% column_spec(1:ncol(lot_table)+1, border_left = T, width = "7em") %>% column_spec(1, width = "10em")
 ```
 
 # Graphical Comparisons
 
-## Seedling condition by species
-```{r echo=FALSE}
-tree_summary %>% 
-  group_by(Species, Condition) %>% 
-  summarise(Condition.Mean=mean(n)) %>% 
-  
-  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-  
-  # Plotting
-  ggplot()+
-  aes(x=Species,y=Condition.Percent,fill=Condition)+
-  geom_bar(stat="Identity")+
-  theme_few() + scale_fill_manual(values = alpha(condition_colours, .8))
+## Seedling condition by species{.tabset}
+```{r echo=FALSE, results="asis"}
+for(year in years){
+  cat("  \n### ", year, "  \n")
+  print(tree_summary[[year]] %>% 
+    group_by(Species, Condition) %>% 
+    summarise(Condition.Mean=mean(n)) %>% 
+    
+    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+    
+    # Plotting
+    ggplot()+
+    aes(x=Species,y=Condition.Percent,fill=Condition)+
+    geom_bar(stat="Identity")+
+    theme_few() + scale_fill_manual(values = alpha(condition_colours, .8)))
+  cat("  \n")
+}
 ```
 
-## Seedling condition by trial
-```{r echo=FALSE}
-tree_summary %>% 
-  group_by(FID, Condition) %>% 
-  summarise(Condition.Mean=mean(n)) %>% 
-  
-  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-  
-  # Plotting
-  ggplot()+
-  aes(x=FID,y=Condition.Percent,fill=Condition)+
-  geom_bar(stat="Identity")+
-  theme_few() + theme(axis.text.x = element_text(angle = 90))+
-  scale_fill_manual(values = alpha(condition_colours, .8))
-```
-## Seedling condition by trial and species
-```{r echo=FALSE, fig.height=10}
-tree_summary %>% 
-  group_by(Species,FID,Condition) %>% 
-  summarise(Condition.Mean=mean(n)) %>% 
-  
-  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-  
-  # Plotting
-  ggplot()+
-  aes(x=Species,y=Condition.Percent,fill=Condition)+
-  geom_bar(stat="Identity")+
-  facet_wrap(~FID,ncol=3,scales="free_x")+
-  theme_few() + theme(axis.text.x = element_text(angle = 90))+ scale_fill_manual(values = alpha(condition_colours, .8))
+## Seedling condition by trial {.tabset}
+```{r echo=FALSE, results="asis"}
+for(year in years){
+  cat("  \n### ", year, "  \n")
+  print(tree_summary[[year]] %>% 
+    group_by(FID, Condition) %>% 
+    summarise(Condition.Mean=mean(n)) %>% 
+    
+    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+    
+    # Plotting
+    ggplot()+
+    aes(x=FID,y=Condition.Percent,fill=Condition)+
+    geom_bar(stat="Identity")+
+    theme_few() + theme(axis.text.x = element_text(angle = 90))+
+    scale_fill_manual(values = alpha(condition_colours, .8)))
+  cat("  \n")
+}
 ```
 
-## Seedling condition by seedlot
-```{r echo=FALSE}
-tree_summary %>% 
-  group_by(Species,Seedlot,Condition) %>% 
-  summarise(Condition.Mean=mean(n)) %>% 
-  
-  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-  
-  # Plotting
-  ggplot()+
-  aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
-  geom_bar(stat="Identity")+
-  facet_wrap(~Species,ncol=3,scales="free_x")+
-  theme_few() + scale_fill_manual(values = alpha(condition_colours, .8))
+## Seedling condition by trial and species {.tabset}
+```{r echo=FALSE, fig.height=10, results="asis"}
+for(year in years){
+  cat("  \n### ", year, "  \n")
+  print(tree_summary[[year]] %>% 
+    group_by(Species,FID,Condition) %>% 
+    summarise(Condition.Mean=mean(n)) %>% 
+    
+    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+    
+    # Plotting
+    ggplot()+
+    aes(x=Species,y=Condition.Percent,fill=Condition)+
+    geom_bar(stat="Identity")+
+    facet_wrap(~FID,ncol=3,scales="free_x")+
+    theme_few() + theme(axis.text.x = element_text(angle = 90))+ scale_fill_manual(values = alpha(condition_colours, .8)))
+  cat("  \n")
+}
 ```
 
-## Mean of condition class for each species
-```{r echo=FALSE}
-tree_summary %>% 
-  group_by(Species,Condition) %>% 
-  summarise(Condition.Mean=mean(n), Condition.stdev=sd(n), Condition.count = n())%>% 
-  
-  mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-  mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
-  mutate(Condition.sterror = Condition.stdev/sqrt(Condition.count)) %>%
-  mutate(Condition.sterror.p = Condition.sterror/sum(Condition.Mean)) %>%
-  # Plotting
-  ggplot()+
-  aes(x=Condition,y=Condition.Percent)+
-  geom_bar(stat="Identity")+
-  facet_wrap(~Species,ncol=3,scales="free_x")+
-  theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
-  geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.sterror.p, ymax=Condition.Percent+Condition.sterror.p), width=0.4, colour="orange", alpha=0.9, size=1)
+## Seedling condition by seedlot {.tabset}
+```{r echo=FALSE, results="asis"}
+for(year in years){
+  cat("  \n### ", year, "  \n")
+  print(tree_summary[[year]] %>% 
+    group_by(Species,Seedlot,Condition) %>% 
+    summarise(Condition.Mean=mean(n)) %>% 
+    
+    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+    
+    # Plotting
+    ggplot()+
+    aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
+    geom_bar(stat="Identity")+
+    facet_wrap(~Species,ncol=3,scales="free_x")+
+    theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)))
+  cat("  \n")
+}
 ```
 
-## Temperature
+## Mean of condition class for each species {.tabset}
+```{r echo=FALSE, results="asis"}
+for(year in years){
+  cat("  \n### ", year, "  \n")
+  print(tree_summary[[year]] %>% 
+    group_by(Species,Condition) %>% 
+    summarise(Condition.Mean=mean(n), Condition.stdev=sd(n), Condition.count = n())%>% 
+    
+    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+    mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
+    mutate(Condition.sterror = Condition.stdev/sqrt(Condition.count)) %>%
+    mutate(Condition.sterror.p = Condition.sterror/sum(Condition.Mean)) %>%
+    # Plotting
+    ggplot()+
+    aes(x=Condition,y=Condition.Percent)+
+    geom_bar(stat="Identity")+
+    facet_wrap(~Species,ncol=3,scales="free_x")+
+    theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
+    geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.sterror.p, ymax=Condition.Percent+Condition.sterror.p), width=0.4, colour="orange", alpha=0.9, size=1))
+  cat("  \n")
+}
+```
+
+## Height by Species
 ```{r echo=FALSE,results="asis"}
+trees %>% group_by(Species, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=Species) + geom_line(stat="Identity")
+```
+
+## Height by Seedlot
+```{r echo=FALSE,results="asis"}
+trees %>% group_by(Seedlot, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=Seedlot) + geom_line(stat="Identity")
+```
+
+## Height by FID
+```{r echo=FALSE,results="asis"}
+trees %>% group_by(FID, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=FID) + geom_line(stat="Identity")
+```
+
+
+## Diameter by Species
+```{r echo=FALSE,results="asis"}
+trees %>% group_by(Species, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=Species) + geom_line(stat="Identity")
+```
+
+
+## Diameter by Seedlot
+```{r echo=FALSE,results="asis"}
+trees %>% group_by(Seedlot, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=Seedlot) + geom_line(stat="Identity")
+```
+
+## Diameter by FID
+```{r echo=FALSE,results="asis"}
+trees %>% group_by(FID, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=FID) + geom_line(stat="Identity")
+
+```
+## Temperature
+```{r echo=FALSE,results="asis",message=FALSE}
 #TODO What date ranges should be applied to this data
 ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID) %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold")
 
@@ -162,43 +227,50 @@ ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID)
 
 # Statistical Comparisons
 
+
 ## Spatial Correllation
 ```{r echo=FALSE,results="asis"}
 
-fids = as.data.frame(trees %>% distinct(FID))
+fids = as.data.frame(trees %>% distinct(FID) )
 for(id in 1:nrow(fids)) {
   feature <- as.vector(fids$FID[[id]])
   cat("  \n####",  feature, "  \n")
-  tree_list = as.data.frame(trees %>% filter(FID == feature))
-  tree_distance = as.matrix(dist(cbind(tree_list$Lat, tree_list$Lon))) #TODO: Analysis should be done in projected CRS
-  inverse_tree_distance = 1/tree_distance
-  tree_list %>% mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good"))
-  inverse_tree_distance[is.infinite(inverse_tree_distance)] <- 0
-  moran = Moran.I(as.numeric(tree_list$Condition), inverse_tree_distance)
-  cat("  \nObserved: ", moran$observed)
-  cat("  \nExpected: ", moran$expected)
-  cat("  \nStandard Deviation: ", moran$sd)
-  cat("  \np-value: ", moran$p, "  \n---------------------------")
-  #TODO what correleation is considered clustered for this data set?
-  if(moran$p > 0.5){
-    cat("  \nNot Statistically Significant!")
-  }
-  if(moran$observed - .1 > moran$expected){
-    cat("  \nClustered")
-  }
-  else if(moran$observed + .1 < moran$expected){
-    cat("  \nDispursed")
+  tree_list = as.data.frame(trees %>% filter(FID == feature & (Lon != 0 | Lat != 0)))
+  if (nrow(tree_list) > 0){
+    tree_distance = as.matrix(dist(cbind(tree_list$Lat, tree_list$Lon)))
+    inverse_tree_distance = 1/tree_distance
+    tree_list %>% mutate(Condition=fct_relevel(Condition,"Missing","Dead", "Moribund","Poor","Fair","Good"))
+    inverse_tree_distance[is.infinite(inverse_tree_distance)] <- 0
+    moran = Moran.I(as.numeric(tree_list$Condition), inverse_tree_distance)
+    cat("  \nObserved: ", moran$observed)
+    cat("  \nExpected: ", moran$expected)
+    cat("  \nStandard Deviation: ", moran$sd)
+    cat("  \np-value: ", moran$p, "  \n---------------------------")
+    #TODO what correleation is considered clustered for this data set?
+    if(moran$p > 0.5){
+      cat("  \nNot Statistically Significant!")
+    }
+    if(moran$observed - .1 > moran$expected){
+      cat("  \nClustered")
+    }
+    else if(moran$observed + .1 < moran$expected){
+      cat("  \nDispursed")
+    }
+    else{
+      cat("  \nRandom")
+    }
   }
   else{
-    cat("  \nRandom")
+    cat("   \nTree positions unknown")
   }
-  
   cat("  \n")
 }
 ```
 
 ## Temperature
 ```{r echo=FALSE, results="asis"}
+#Graphs are printed for each year
+#TODO: Are seasons dates correct?
 for (year in year(as.character(min(as.date(as.character(climate$Date))))):year(as.character(max(as.date(as.character(climate$Date)))))){
   cat("  \n### ", year)
   cat("   \n#### Entire Growing Seasion")
@@ -266,6 +338,39 @@ for(id in 1:nrow(ss)) {
   print(kable(condition_by_trial(feature, trees)))
 }
 
+```
+
+## Height by Species
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
+```
+
+
+## Height by Seedlot
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
+```
+
+## Height by FID
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
+```
+
+
+## Diameter by Species
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
+```
+
+
+## Diameter by Seedlot
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
+```
+
+## Diameter by FID
+```{r echo=FALSE,results="asis"}
+print(kable(pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
 ```
 
 ### Temperature
