@@ -1,20 +1,29 @@
 ---
 title: "Offsite Trial Reporting"
 author: "Matt McLean"
-date: "23/03/2020"
-output: 
+date: "13/05/2020"
+output:
+  word_document:
+    toc: yes
+    toc_depth: '4'
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
   html_document:
-    toc: TRUE
-    toc_float: TRUE
+    toc: yes
     toc_depth: 4
+    toc_float: yes
+editor_options:
+  chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = FALSE, results = 'asis', warning=FALSE, message=FALSE)
 #install.packages('bcmapsdata', repos='https://bcgov.github.io/drat/')
 library(bcdata)
 library(bcmaps)
 library(bcmapsdata)
+library(matrixStats)
 library(tidyverse)
 library(knitr)
 library(kableExtra)
@@ -33,7 +42,7 @@ source("functions/climate_summary.R")
 
 ```
 <!--- Configuration --->
-```{r, echo=FALSE}
+```{r}
 load(here::here("trial_data.Rdata"))
 seedlots = all_data$seedlots
 trees = all_data$trees
@@ -41,7 +50,13 @@ climate = all_data$climate
 plots = all_data$plots
 meta = all_data$meta
 sites = distinct(select(merge(meta, plots, by="FID"), Location, FID, Lat, Lon), Location, FID, .keep_all = TRUE) #Location based on a plot not center of entire site
+climate_sites = distinct(climate, ClimateStationID)
+#List of years for which tree data is present, don't try to plot dates outside this range
 years = year(as.character(min(as.date(as.character(trees$Date))))):year(as.character(max(as.date(as.character(trees$Date)))))
+#List of years for climate data can differ from plot data.
+climate_years = year(as.character(min(as.date(as.character(climate$Date))))):year(as.character(max(as.date(as.character(climate$Date)))))
+
+#This function was used by many of the plots, moved here to not repeat
 tree_summary=list()
 for(year in years){
   tree_summary[[year]] <- trees %>% 
@@ -57,14 +72,17 @@ for(year in years){
     summarise(n=n()) %>% # summarize number of trees at FID/Plot/Species/Condition
     ungroup()
 }
+
 #Define custom colour scheme, though we are using theme_few() which has defualt colour ramps, they make our plots look like easter egges, Rules 3, 4, 7
 #TODO: Reduce contrast in palette Rule 5
 condition_colours = c(Missing='black', Dead='red', Moribund='orange', Poor='yellow', Fair='green', Good='darkgreen','purple') #Purple is missing data, if you see this color in charts there is incomplete records for trees 
+frost_stats = temperature_events(climate, 0)
+hard_frost_stats = temperature_events(climate, -4)
 
 ```
 # Study Information
 ## Map
-```{r echo=FALSE,results="asis"}
+```{r}
 points <- st_as_sf(x = sites %>% mutate(FID), coords = c("Lon", "Lat"), crs = "+proj=longlat")
 center = st_coordinates(points$geometry) %>% matrix(ncol=2,byrow=FALSE)
 #TODO: Prevent Labels overlapping, increase bounding box size
@@ -72,7 +90,7 @@ mapview(points["FID"], legend = FALSE, map.types = c("OpenTopoMap"), labelOption
 ```
 
 ## Seedlots
-```{r echo=FALSE,results="asis"}
+```{r}
 lot_table = as.data.frame(t(seedlots %>% select(Seedlot, Species, Code, Provenance = Provenance.description, Lat, Long, Elevation, 'Mean annual temperature (°C)' = MAT, "Mean wamest month temperature (°C)" = MWMT, "Mean coldest month temperature (°C)" = MCMT, "Number of frost free days" = NFFD, "Continious frost-free period (days)" = FFP, "Mean annual precipitation (mm" = MAP, "Mean summer precipitation (mm)" = MSP, "Precipitation as snow (mm)" = PAS)))
 colnames(lot_table) = as.character(unlist(lot_table[1,]))
 kable(lot_table[-1, ]) %>% kable_styling(bootstrap_options = c("striped", "hover"), font_size = 12) %>% column_spec(1:ncol(lot_table)+1, border_left = T, width = "7em") %>% column_spec(1, width = "10em")
@@ -81,155 +99,296 @@ kable(lot_table[-1, ]) %>% kable_styling(bootstrap_options = c("striped", "hover
 # Graphical Comparisons
 
 ## Seedling condition by species{.tabset}
-```{r echo=FALSE, results="asis"}
+```{r}
 for(year in years){
   cat("  \n### ", year, "  \n")
   print(tree_summary[[year]] %>% 
-    group_by(Species, Condition) %>% 
-    summarise(Condition.Mean=mean(n)) %>% 
-    
-    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-    
-    # Plotting
-    ggplot()+
-    aes(x=Species,y=Condition.Percent,fill=Condition)+
-    geom_bar(stat="Identity")+
-    theme_few() + scale_fill_manual(values = alpha(condition_colours, .8)))
+          group_by(Species, Condition) %>% 
+          summarise(Condition.Mean=mean(n)) %>% 
+          
+          mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+          
+          # Plotting
+          ggplot()+
+          aes(x=Species,y=Condition.Percent,fill=Condition)+
+          geom_bar(stat="Identity")+
+          theme_few() + scale_fill_manual(values = alpha(condition_colours, .8)))
   cat("  \n")
 }
 ```
 
 ## Seedling condition by trial {.tabset}
-```{r echo=FALSE, results="asis"}
+```{r}
 for(year in years){
   cat("  \n### ", year, "  \n")
   print(tree_summary[[year]] %>% 
-    group_by(FID, Condition) %>% 
-    summarise(Condition.Mean=mean(n)) %>% 
-    
-    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-    
-    # Plotting
-    ggplot()+
-    aes(x=FID,y=Condition.Percent,fill=Condition)+
-    geom_bar(stat="Identity")+
-    theme_few() + theme(axis.text.x = element_text(angle = 90))+
-    scale_fill_manual(values = alpha(condition_colours, .8)))
+          group_by(FID, Condition) %>% 
+          summarise(Condition.Mean=mean(n)) %>% 
+          
+          mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+          
+          # Plotting
+          ggplot()+
+          aes(x=FID,y=Condition.Percent,fill=Condition)+
+          geom_bar(stat="Identity")+
+          theme_few() + theme(axis.text.x = element_text(angle = 90))+
+          scale_fill_manual(values = alpha(condition_colours, .8)))
   cat("  \n")
 }
 ```
 
 ## Seedling condition by trial and species {.tabset}
-```{r echo=FALSE, fig.height=10, results="asis"}
+```{r fig.height=10}
 for(year in years){
   cat("  \n### ", year, "  \n")
   print(tree_summary[[year]] %>% 
-    group_by(Species,FID,Condition) %>% 
-    summarise(Condition.Mean=mean(n)) %>% 
-    
-    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-    
-    # Plotting
-    ggplot()+
-    aes(x=Species,y=Condition.Percent,fill=Condition)+
-    geom_bar(stat="Identity")+
-    facet_wrap(~FID,ncol=3,scales="free_x")+
-    theme_few() + theme(axis.text.x = element_text(angle = 90))+ scale_fill_manual(values = alpha(condition_colours, .8)))
+          group_by(Species,FID,Condition) %>% 
+          summarise(Condition.Mean=mean(n)) %>% 
+          
+          mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+          
+          # Plotting
+          ggplot()+
+          aes(x=Species,y=Condition.Percent,fill=Condition)+
+          geom_bar(stat="Identity")+
+          facet_wrap(~FID,ncol=3,scales="free_x")+
+          theme_few() + theme(axis.text.x = element_text(angle = 90))+ scale_fill_manual(values = alpha(condition_colours, .8)))
   cat("  \n")
 }
 ```
 
 ## Seedling condition by seedlot {.tabset}
-```{r echo=FALSE, results="asis"}
+```{r}
 for(year in years){
   cat("  \n### ", year, "  \n")
   print(tree_summary[[year]] %>% 
-    group_by(Species,Seedlot,Condition) %>% 
-    summarise(Condition.Mean=mean(n)) %>% 
-    
-    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-    
-    # Plotting
-    ggplot()+
-    aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
-    geom_bar(stat="Identity")+
-    facet_wrap(~Species,ncol=3,scales="free_x")+
-    theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)))
+          group_by(Species,Seedlot,Condition) %>% 
+          summarise(Condition.Mean=mean(n)) %>% 
+          
+          mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+          
+          # Plotting
+          ggplot()+
+          aes(x=Seedlot,y=Condition.Percent,fill=Condition)+
+          geom_bar(stat="Identity")+
+          facet_wrap(~Species,ncol=3,scales="free_x")+
+          theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)))
   cat("  \n")
 }
 ```
 
 ## Mean of condition class for each species {.tabset}
-```{r echo=FALSE, results="asis"}
+```{r}
 for(year in years){
   cat("  \n### ", year, "  \n")
   print(tree_summary[[year]] %>% 
-    group_by(Species,Condition) %>% 
-    summarise(Condition.Mean=mean(n), Condition.stdev=sd(n), Condition.count = n())%>% 
-    
-    mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
-    mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
-    mutate(Condition.sterror = Condition.stdev/sqrt(Condition.count)) %>%
-    mutate(Condition.sterror.p = Condition.sterror/sum(Condition.Mean)) %>%
-    # Plotting
-    ggplot()+
-    aes(x=Condition,y=Condition.Percent)+
-    geom_bar(stat="Identity")+
-    facet_wrap(~Species,ncol=3,scales="free_x")+
-    theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
-    geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.sterror.p, ymax=Condition.Percent+Condition.sterror.p), width=0.4, colour="orange", alpha=0.9, size=1))
+          group_by(Species,Condition) %>% 
+          summarise(Condition.Mean=mean(n), Condition.stdev=sd(n), Condition.count = n())%>% 
+          
+          mutate(Condition.Percent = Condition.Mean/sum(Condition.Mean)) %>%
+          mutate(Condition.stdev.p = Condition.stdev/sum(Condition.Mean)) %>%
+          mutate(Condition.sterror = Condition.stdev/sqrt(Condition.count)) %>%
+          mutate(Condition.sterror.p = Condition.sterror/sum(Condition.Mean)) %>%
+          # Plotting
+          ggplot()+
+          aes(x=Condition,y=Condition.Percent)+
+          geom_bar(stat="Identity")+
+          facet_wrap(~Species,ncol=3,scales="free_x")+
+          theme_few() + theme(axis.text.x = element_text(angle = 90)) + scale_fill_manual(values = alpha(condition_colours, .8)) +
+          geom_errorbar( aes(x=Condition, ymin=Condition.Percent-Condition.sterror.p, ymax=Condition.Percent+Condition.sterror.p), width=0.4, colour="orange", alpha=0.9, size=1))
   cat("  \n")
 }
 ```
 
 ## Height by Species
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(Species, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=Species) + geom_line(stat="Identity")
 ```
 
 ## Height by Seedlot
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(Seedlot, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=Seedlot) + geom_line(stat="Identity")
 ```
 
 ## Height by FID
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(FID, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_height, color=FID) + geom_line(stat="Identity")
 ```
 
 
 ## Diameter by Species
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(Species, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=Species) + geom_line(stat="Identity")
 ```
 
 
 ## Diameter by Seedlot
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(Seedlot, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=Seedlot) + geom_line(stat="Identity")
 ```
 
 ## Diameter by FID
-```{r echo=FALSE,results="asis"}
+```{r}
 trees %>% group_by(FID, year=year(Date)) %>% filter(!is.na(Height)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)) %>% ggplot() + aes(x=year, y=mean_diam, color=FID) + geom_line(stat="Identity")
-
 ```
+
 ## Temperature
-```{r echo=FALSE,results="asis",message=FALSE}
-#TODO What date ranges should be applied to this data
-ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID) %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold")
 
-#magnitude must be cast to character before numeric or conversion issues arrive
-ggplot(data=temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID), aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)))) + geom_bar(stat="identity") + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Maximum Magnitude at ClimateStationID")
+### Overview {.tabset}
+```{r}
+#Frost stats overview loops though climate stations making one tab for each, multiple sites and years on single graph is too messy.
+for(site in climate_sites[[1]]){
+  cat("   \n####", as.character(site), "   \n")
+  #ggplot with 3 layers first is minimum dayly temperature, then hard frost events as solid dimonds, finally frost events as X's. Plot is grouped by years, where each year get's it's own colour.
+  print(ggplot() + 
+          geom_line(data = climate %>% mutate(day = lubridate::yday(Date), year = year(Date)) %>% group_by(year, day, ClimateStationID) %>% filter(ClimateVar == "temp" & ClimateStationID == as.character(site)) %>% summarise(minimum_daily_temp = min(Value)), stat="Identity", aes(x=as.numeric(day), y=minimum_daily_temp, color=year), alpha=.5)  + 
+          geom_point(data = hard_frost_stats[[site]], stat="Identity", aes(x=lubridate::yday(Date), y=0 - as.numeric(as.character(hard_frost_stats[[site]]$Magnitude)), fill=year(Date)), colour = 'black', shape=23, size=2, show.legend = F)) + 
+          geom_point(data = frost_stats[[site]], stat="Identity", aes(x=lubridate::yday(Date), y=0 - as.numeric(as.character(frost_stats[[site]]$Magnitude)), color=year(Date)), shape=4, size = 2, show.legend = F) + theme_few() + labs(y="Minimum Temperature (°C)", x = "Day of Year")
+  cat("   \n")
+}
+```
 
-ggplot(data = temperature_summary(climate, 0, -4)  %>% arrange(ClimateStationID) %>% select(ClimateStationID, frost_duration, hard_frost_duration) %>% gather(Threshold, duration, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(duration), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Hours Below Threshold")
+### Events Below Theshold {.tabset}
+```{r}
+for(year in climate_years){
+  cat("  \n#### ", year, "  \n")
+  
+  print(ggplot(data = temperature_summary(climate, 0, -4, paste(year, "-01-01", sep=""),paste(year, "-12-31", sep=""))  %>% arrange(ClimateStationID) %>% select(ClimateStationID, num_frost_events, num_hard_frost_events) %>% gather(Threshold, num_events, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(num_events), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Number of events below threshold"))
+}
+```
+
+### Maximum Magnitude {.tabset}
+```{r}
+for(year in climate_years){
+  cat("  \n#### ", year, "  \n")
+  #magnitude must be cast to character before numeric or conversion issues arrive
+  print(ggplot(data=temperature_summary(climate, 0, -4, paste(year, "-01-01", sep=""),paste(year, "-12-31", sep=""))  %>% arrange(ClimateStationID), aes(x=ClimateStationID, y=as.numeric(as.character(max_magnitude)))) + geom_bar(stat="identity") + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Maximum Magnitude at ClimateStationID"))
+}
+```
+
+### Total Hours Below Threshold {.tabset}
+```{r}
+for(year in climate_years){
+  cat("  \n#### ", year, "  \n")
+  
+  print(ggplot(data = temperature_summary(climate, 0, -4, paste(year, "-01-01", sep=""),paste(year, "-12-31", sep=""))  %>% arrange(ClimateStationID) %>% select(ClimateStationID, frost_duration, hard_frost_duration) %>% gather(Threshold, duration, -ClimateStationID), aes(x = ClimateStationID, y = as.numeric(duration), fill = Threshold)) + geom_bar(stat = 'identity', position = 'dodge') + theme_few() + theme(axis.title.y=element_blank(), axis.text.x = element_text(angle = 90)) + ggtitle("Hours Below Threshold"))
+}
 ```
 
 # Statistical Comparisons
 
+## Growth(Height) by FID
+```{r}
+#Checks for correlation between sites over years, high correlation suggests that speific trial site does not affect growth
+height_by_FID = pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)
+growth_by_FID = height_by_FID[1]
+for (year in 2:(ncol(height_by_FID)-1)){
+  growth_by_FID[year] = cbind(height_by_FID[year + 1] - height_by_FID[year])
+}
+print(kable(growth_by_FID)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_FID[,2:ncol(growth_by_FID)]), colSds(as.matrix(growth_by_FID[,2:ncol(growth_by_FID)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+print(kable(cor(growth_by_FID[2:ncol(growth_by_FID)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+```
+
+## Growth(Diameter) by FID
+```{r}
+#Checks for correlation between sites over years, high correlation suggests that speific trial site does not affect growth
+diameter_by_FID = pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_diameter = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diameter)
+growth_by_FID = diameter_by_FID[1]
+for (year in 2:(ncol(diameter_by_FID)-1)){
+  growth_by_FID[year] = cbind(diameter_by_FID[year + 1] - diameter_by_FID[year])
+}
+print(kable(growth_by_FID)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_FID[,2:ncol(growth_by_FID)]), colSds(as.matrix(growth_by_FID[,2:ncol(growth_by_FID)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+print(kable(cor(growth_by_FID[2:ncol(growth_by_FID)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+```
+
+## Growth(Height) by Species
+```{r}
+#Mean Growth by Species
+height_by_Species = pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)
+growth_by_Species = height_by_Species[1]
+for (year in 2:(ncol(height_by_Species)-1)){
+  growth_by_Species[year] = cbind(height_by_Species[year + 1] - height_by_Species[year])
+}
+print(kable(growth_by_Species)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_Species[,2:ncol(growth_by_Species)]), colSds(as.matrix(growth_by_Species[,2:ncol(growth_by_Species)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+#Checks for correlation between sites over years
+print(kable(cor(growth_by_Species[2:ncol(growth_by_Species)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+```
+
+## Growth(Diameter) by Species
+```{r}
+#Mean Growth by Species
+diameter_by_Species = pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_diameter = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diameter)
+growth_by_Species = diameter_by_Species[1]
+for (year in 2:(ncol(diameter_by_Species)-1)){
+  growth_by_Species[year] = cbind(diameter_by_Species[year + 1] - diameter_by_Species[year])
+}
+print(kable(growth_by_Species)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_Species[,2:ncol(growth_by_Species)]), colSds(as.matrix(growth_by_Species[,2:ncol(growth_by_Species)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+#Checks for correlation between sites over years
+print(kable(cor(growth_by_Species[2:ncol(growth_by_Species)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+```
+
+## Growth(Height) by Seedlot
+```{r}
+#Mean Growth by Seedlot
+height_by_Seedlot = pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)
+growth_by_Seedlot = height_by_Seedlot[1]
+for (year in 2:(ncol(height_by_Seedlot)-1)){
+  growth_by_Seedlot[year] = cbind(height_by_Seedlot[year + 1] - height_by_Seedlot[year])
+}
+print(kable(growth_by_Seedlot)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_Seedlot[,2:ncol(growth_by_Seedlot)]), colSds(as.matrix(growth_by_Seedlot[,2:ncol(growth_by_Seedlot)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+#Checks for correlation between sites over years, high correlation suggests lower influence of seed providence
+print(kable(cor(growth_by_Seedlot[2:ncol(growth_by_Seedlot)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+```
+
+## Growth(Diameter) by Seedlot
+```{r}
+#Mean Growth by Seedlot
+diameter_by_Seedlot = pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_diameter = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diameter)
+growth_by_Seedlot = diameter_by_Seedlot[1]
+for (year in 2:(ncol(diameter_by_Seedlot)-1)){
+  growth_by_Seedlot[year] = cbind(diameter_by_Seedlot[year + 1] - diameter_by_Seedlot[year])
+}
+print(kable(growth_by_Seedlot)%>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Standard Deviation\n")
+print(kable(rbind(colnames(growth_by_Seedlot[,2:ncol(growth_by_Seedlot)]), colSds(as.matrix(growth_by_Seedlot[,2:ncol(growth_by_Seedlot)]), na.rm=TRUE))) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+
+cat("   \n### Correlation\n")
+#Checks for correlation between sites over years, high correlation suggests lower influence of seed providence
+print(kable(cor(growth_by_Seedlot[2:ncol(growth_by_Seedlot)], use="complete.obs")) %>% kable_styling(bootstrap_options = c("striped", "hover")))
+```
 
 ## Spatial Correllation
-```{r echo=FALSE,results="asis"}
+```{r}
 
 fids = as.data.frame(trees %>% distinct(FID) )
 for(id in 1:nrow(fids)) {
@@ -251,13 +410,13 @@ for(id in 1:nrow(fids)) {
       cat("  \nNot Statistically Significant!")
     }
     if(moran$observed - .1 > moran$expected){
-      cat("  \nClustered")
+      cat("  \nClustered Distribution")
     }
     else if(moran$observed + .1 < moran$expected){
-      cat("  \nDispursed")
+      cat("  \nDispursed Distribution")
     }
     else{
-      cat("  \nRandom")
+      cat("  \nRandom Distribution")
     }
   }
   else{
@@ -268,7 +427,7 @@ for(id in 1:nrow(fids)) {
 ```
 
 ## Temperature
-```{r echo=FALSE, results="asis"}
+```{r}
 #Graphs are printed for each year
 #TODO: Are seasons dates correct?
 for (year in year(as.character(min(as.date(as.character(climate$Date))))):year(as.character(max(as.date(as.character(climate$Date)))))){
@@ -290,7 +449,7 @@ for (year in year(as.character(min(as.date(as.character(climate$Date))))):year(a
 ## Data Tables
 
 ### Plot Summaries
-```{r echo=FALSE,results="asis"}
+```{r}
 
 fids = as.data.frame(trees %>% distinct(FID))
 for(id in 1:nrow(fids)) {
@@ -301,26 +460,26 @@ for(id in 1:nrow(fids)) {
 ```
 
 ### Treatment Summaries
-```{r echo=FALSE, results="asis"}
+```{r}
 treatments = as.data.frame(trees %>% distinct(Species, Seedlot))
 print(kable(treatment_summary(trees)))
 cat("  \n###")
 ```
 ### Treatments by Species
-```{r echo=FALSE, results="asis"}
+```{r}
 treatments = as.data.frame(trees %>% distinct(Species))
 print(kable(species_summary(trees)))
 cat("  \n####")
 ```
 ### Treatments by Seedlot
-```{r echo=FALSE, results="asis"}
+```{r}
 treatments = as.data.frame(trees %>% distinct(Seedlot))
 print(kable(seedlot_summary(trees)))
 cat("  \n####")
 ```
 
 ## Seedlot by Species
-```{r echo=FALSE,results="asis"}
+```{r}
 Species = as.data.frame(trees %>% distinct(Species))
 for(id in 1:nrow(Species)) {
   feature <- as.vector(Species$Species[[id]])
@@ -330,7 +489,7 @@ for(id in 1:nrow(Species)) {
 ```
 
 ## Condition by Trial
-```{r echo=FALSE, results="asis"}
+```{r}
 ss = as.data.frame(trees %>% distinct(Species, Seedlot))
 for(id in 1:nrow(ss)) {
   feature <- as.vector(c(ss$Seedlot[[id]], as.character(ss$Species[[id]])))
@@ -341,42 +500,40 @@ for(id in 1:nrow(ss)) {
 ```
 
 ## Height by Species
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
 ```
 
 
 ## Height by Seedlot
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
 ```
 
 ## Height by FID
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_height = mean(Height, na.rm=TRUE)), names_from = year, values_from = mean_height)))
 ```
 
 
 ## Diameter by Species
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(Species, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
 ```
 
 
 ## Diameter by Seedlot
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(Seedlot, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
 ```
 
 ## Diameter by FID
-```{r echo=FALSE,results="asis"}
+```{r}
 print(kable(pivot_wider(trees %>% group_by(FID, year=year(Date)) %>% summarize(mean_diam = mean(Diameter, na.rm=TRUE)), names_from = year, values_from = mean_diam)))
 ```
 
 ### Temperature
-```{r echo=FALSE, results="asis"}
-frost_stats = temperature_events(climate, 0)
-hard_frost_stats = temperature_events(climate, -4)
+```{r}
 for(table in 1:length(frost_stats)){
   cat("   \n#### Frost", names(frost_stats[table]))
   print(kable(frost_stats[[table]]))
@@ -386,7 +543,7 @@ for(table in 1:length(frost_stats)){
 ```
 
 ## Site Maps
-```{r echo=FALSE,results="asis"}
+```{r}
 #tmap_mode("view") #Interactive view mode not currently support by R-Markdown
 for (site in sites$FID){
   points <- st_as_sf(x = all_data$trees %>% filter(FID == site) %>% mutate(Condition=fct_relevel(Condition,"Good","Fair", "Poor", "Moribund","Dead", "Missing")), coords = c("Lat", "Lon"), crs = "+proj=longlat")

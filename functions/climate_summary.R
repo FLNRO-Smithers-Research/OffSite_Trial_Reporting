@@ -78,7 +78,7 @@ temperature_events <- function(climate, threshold, start=NULL, end=NULL){
     else{ #If the dataframe is empty fill with 0's to prevent null errors
       event_df = as.data.frame(t(c(0,0,0,0)))
     }
-    colnames(event_df) <- c("Date", "Day of Year", "Duration", "Magnitude")
+    colnames(event_df) <- c("Date", "Day_of_Year", "Duration", "Magnitude")
     all_events[[this_site]] <- event_df
   }
   return(all_events)
