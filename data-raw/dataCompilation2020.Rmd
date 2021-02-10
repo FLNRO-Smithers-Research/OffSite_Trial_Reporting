@@ -1,0 +1,89 @@
+---
+title: "Data prep"
+author: "Hardy Griesbauer"
+date: "09/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# libraries
+library(tidyverse)
+library(here)
+library(readxl)
+
+```
+
+## This document describes the steps used to clean and compile datasets for the offsite trial in the SBSmc2.
+
+```{r define readData function,eval=FALSE}
+
+# Define readData function
+
+readData<-function(fname) {
+
+x<-
+  read_excel(here("data-raw/2020 data",fname), 
+  sheet = "FieldCard", range=cell_cols("B:K")) 
+
+# Extract some information from the spreadsheets
+loc<-x[1,2] %>% as.character()
+FID<-x[1,5] %>% as.character()  
+xnames<-slice(x,n=3)
+  
+
+
+  x %>% 
+  setNames(xnames) %>%  # set names
+  slice(4:n()) %>% 
+
+  # deal with plot numbers
+  mutate(Plot=as.numeric(Plot)) %>%   
+  fill(Plot) %>% 
+  
+  # set names
+  setNames(c("Plot","Species","Seedlot","Condition_2019",
+           "Condition_2020sp","Condition_2020fa","Height","Diameter","Leader",
+           "Comment")) %>% 
+  mutate(Measurement_Year=2020) %>% 
+  mutate(FID=FID) %>% 
+  mutate(Location=loc) %>% 
+  dplyr::select(FID,Location,Plot:Condition_2020fa,Measurement_Year,
+                Height:Comment) %>% 
+    return()
+  
+} # close function
+
+data2020<-
+  list.files(here("data-raw/2020 data")) %>% 
+  map_df(.,readData)
+
+
+save(data2020,file=here("data/2020_data","data2020.RData"))
+
+
+```
+
+## Read in 2020 data
+
+```{r read 2020 data}
+
+load(here("data/2020_data","data2020.RData"))
+
+```
+
+### Quick summaries
+Let's see if the data are complete
+
+```{r prelim look at data}
+
+data2020 %>% 
+  group_by(FID,Species,Seedlot) %>% 
+  summarise(Num.Trees=n()) %>% 
+  filter(Num.Trees!=36)
+
+
+```
+
+
