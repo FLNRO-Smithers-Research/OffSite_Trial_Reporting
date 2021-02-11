@@ -55,16 +55,36 @@ xnames<-slice(x,n=3)
   
 } # close function
 
+# read in seedlot information
+seedlot<-
+  read_csv(here("data-raw/seedlotData","Seedlot_info.csv")) %>% 
+  mutate_all(factor) %>% 
+  dplyr::select(-Species)
+
+
 data2020<-
   list.files(here("data-raw/2020 data")) %>% 
   map_df(.,readData) %>% 
   mutate(FID=replace(FID,FID=="Frost","11_Frost")) %>% 
   mutate(FID=paste0("FID",FID)) %>% 
-  mutate(Type=str_split(data2020$FID,pattern="_",n=2,simplify = T)[,2]) %>% 
-  mutate(FID=str_split(data2020$FID,pattern="_",n=2,simplify = T)[,1]) %>%
-  dplyr::relocate(Type,.after=FID) %>% 
-  mutate_at(FID:Seedlot,factor)
+  mutate(Type=str_split(FID,pattern="_",n=2,simplify = T)[,2]) %>% 
+  mutate(FID=str_split(FID,pattern="_",n=2,simplify = T)[,1]) %>%
+  relocate(Type,.after="FID") %>% 
+  mutate_at(vars(FID:Measurement_Year),factor) %>% 
+  mutate(Condition_2020fa=fct_recode(Condition_2020fa,Good="good")) %>% 
+  mutate(Condition_2020sp=fct_recode(Condition_2020sp,Missing="missing")) %>% 
   
+  # reorder factor levels
+  mutate(Condition_2020fa=fct_relevel(Condition_2020fa,"Missing","Dead","Moribund","Poor","Fair","Good")) %>% 
+  mutate(Condition_2020sp=fct_relevel(Condition_2020sp,"Missing","Dead","Moribund","Poor","Fair","Good")) %>% 
+  mutate(Condition_2019=fct_relevel(Condition_2019,"Missing","Dead","Moribund","Poor","Fair","Good")) %>% 
+  
+  # bring in seedlot information
+  left_join(seedlot,by="Seedlot") %>% 
+  relocate(Distance,.after="Seedlot") %>% 
+  mutate(Distance=fct_relevel(Distance,"Local","Near","Far"))
+
+
 
 
 
@@ -94,4 +114,18 @@ data2020 %>%
 
 ```
 
+We can see that the frost FID has varying number of trees by species/seedlot.  Let's look into this a bit more.
+
+```{r compare 2020 condition data to 2019 survival survey}
+
+data2019_frost<-
+  readxl::read_excel(here("data-raw/2019 survival survey/","SurvivalSurveyFID11Frost.xlsx"), 
+    skip = 3) %>% 
+  setNames(c("TreeID","Plot","Species","Seedlot","Condition","Comment")) %>% 
+  mutate(Measurement_year="2019") %>% 
+  fill(Plot:Seedlot)
+
+
+
+```
 

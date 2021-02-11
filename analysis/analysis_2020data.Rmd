@@ -2,7 +2,9 @@
 title: "Preliminary analysis of 2020 data"
 author: "Hardy Griesbauer"
 date: "10/02/2021"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -19,12 +21,77 @@ load(here::here("data/2020_data","data2020.RData"))
 ## Introduction
 
 
-##
 
-```{r survival summaries}
+```{r seedling condition summaries}
+
+data2020 %>% 
+  filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+  group_by(Type,Species,Distance,Condition_2020fa) %>% 
+  summarise(n=n()) %>% 
+  mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
+  
+  ggplot()+
+  aes(x=Condition_2020fa,y=freq,fill=Distance)+
+  geom_bar(stat="identity",position="dodge")+
+  facet_grid(Species~Type)+
+  xlab("Condition fall 2020")+
+  ylab("Proportion")+
+  labs(fill="Seed dist.")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1))
+
 
 
 
 
 ```
 
+We can show seedling condition a little differently.  The figure below allows to compare seedling condition between seedlot, by site type.
+
+```{r seedling condition summaries 2nd way}
+
+data2020 %>% 
+  filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+  group_by(Type,Species,Distance,Condition_2020fa) %>% 
+  summarise(n=n()) %>% 
+  mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
+  
+  ggplot()+
+  aes(x=Distance,y=freq,fill=Condition_2020fa)+
+  geom_bar(stat="identity",position="stack")+
+  facet_grid(Species~Type)+
+  xlab("Seedlot distance")+
+  ylab("Proportion")+
+  labs(fill="Seedling condition")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1))
+
+
+
+
+
+```
+
+
+Another way of looking at the same data.  Here, seedling condition is arranged to allow comparison of site type, within seedlot:
+
+```{r seedling condition summaries 3rd way}
+
+data2020 %>% 
+  filter(!Type %in% c("Frost","Demo")) %>% # remove frost and demo sites
+  group_by(Type,Species,Distance,Condition_2020fa) %>% 
+  summarise(n=n()) %>% 
+  mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
+  
+  ggplot()+
+  aes(x=Type,y=freq,fill=Condition_2020fa)+
+  geom_bar(stat="identity",position="stack")+
+  facet_grid(Species~Distance)+
+  xlab("Site type")+
+  ylab("Proportion")+
+  labs(fill="Seedling condition")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1))
+
+
+
+
+
+```
