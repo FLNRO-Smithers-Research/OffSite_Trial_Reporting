@@ -1,0 +1,30 @@
+---
+title: "Preliminary analysis of 2020 data"
+author: "Hardy Griesbauer"
+date: "10/02/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Libraries
+library(tidyverse)
+
+# Load data
+load(here::here("data/2020_data","data2020.RData"))
+
+```
+
+## Introduction
+
+
+##
+
+```{r survival summaries}
+
+
+
+
+```
+
