@@ -7,8 +7,12 @@ output:
   html_document: default
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r setup, include=FALSE,echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message=FALSE,
+                      warning=FALSE,
+                      fig.width=8,
+                      fig.height=8)
 
 # Libraries
 library(tidyverse)
@@ -18,14 +22,15 @@ load(here::here("data/2020_data","data2020.RData"))
 
 ```
 
-## Introduction
+## Seedling condition
 
-
+Let's explore seedling condition (as of Fall 2020) by species, seedlot and site type:
 
 ```{r seedling condition summaries}
 
 data2020 %>% 
   filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+  drop_na(Condition_2020fa) %>% # there are a few trees with no condition recorded in Fall 2020 (see e-mail from Brett)
   group_by(Type,Species,Distance,Condition_2020fa) %>% 
   summarise(n=n()) %>% 
   mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
@@ -45,12 +50,18 @@ data2020 %>%
 
 ```
 
+- Notice how few novel trees are in good/fair condition on the frost site, especially compared to Pli and Sx.
+- Notice that the novel tree species seem to be in better condition on the dry site.
+
+\newpage
+
 We can show seedling condition a little differently.  The figure below allows to compare seedling condition between seedlot, by site type.
 
 ```{r seedling condition summaries 2nd way}
 
 data2020 %>% 
   filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+  drop_na(Condition_2020fa) %>% # there are a few trees with no condition recorded in Fall 2020 (see e-mail from Brett)
   group_by(Type,Species,Distance,Condition_2020fa) %>% 
   summarise(n=n()) %>% 
   mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
@@ -70,13 +81,16 @@ data2020 %>%
 
 ```
 
+\newpage
 
 Another way of looking at the same data.  Here, seedling condition is arranged to allow comparison of site type, within seedlot:
 
 ```{r seedling condition summaries 3rd way}
 
+
 data2020 %>% 
-  filter(!Type %in% c("Frost","Demo")) %>% # remove frost and demo sites
+  filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+  drop_na(Condition_2020fa) %>% # there are a few trees with no condition recorded in Fall 2020 (see e-mail from Brett)
   group_by(Type,Species,Distance,Condition_2020fa) %>% 
   summarise(n=n()) %>% 
   mutate(freq = n / sum(n)) %>% # remember one grouping level peeled off with each summarise
@@ -91,7 +105,59 @@ data2020 %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1))
 
 
+```
+\newpage
 
+
+## Growth
+Let's look at leader growth by species, arranged so we can compare seedlot performance between sites.
+
+```{r}
+
+
+
+data2020 %>% 
+  filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+ 
+  ggplot()+
+  aes(x=Distance,y=Leader,fill=Species)+
+  geom_boxplot()+
+  facet_grid(Species~Type,scales="free_y")+
+  xlab("Seedlot distance")+
+  ylab("2020 Leader growth (cm)")+
+  labs(fill="Species")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1),
+        legend.position = "none")
 
 
 ```
+
+Some of these leader lengths seem exceptionally large.  Notice the Fd with a 60cm leader?  Or many Pli and Lw seedlings with 40cm leaders?  
+
+Also, I am not sure how they measured Cw leaders.  I will follow up with Larry on this.
+
+\newpage
+
+Another way to look at leader growth, arranged so we can compare species performance between sites.
+
+```{r}
+
+
+
+data2020 %>% 
+  filter(!Type %in% c("Demo")) %>% # remove frost and demo sites
+ 
+  ggplot()+
+  aes(x=Distance,y=Leader,fill=Species)+
+  geom_boxplot()+
+  facet_grid(Type~Species,scales="free_y")+
+  xlab("Seedlot distance")+
+  ylab("2020 Leader growth (cm)")+
+  labs(fill="Species")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.2, hjust=1),
+        legend.position = "none")
+
+
+```
+
+Note that the y scale varies between facets.

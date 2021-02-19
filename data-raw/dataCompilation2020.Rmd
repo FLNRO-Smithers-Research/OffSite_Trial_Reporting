@@ -82,10 +82,13 @@ data2020<-
   # bring in seedlot information
   left_join(seedlot,by="Seedlot") %>% 
   relocate(Distance,.after="Seedlot") %>% 
-  mutate(Distance=fct_relevel(Distance,"Local","Near","Far"))
+  mutate(Distance=fct_relevel(Distance,"Local","Near","Far")) %>% 
 
-
-
+  # Reorder site type 
+  mutate(Type=fct_relevel(Type,"Frost",after=1)) %>% 
+  mutate(Height=as.numeric(Height),
+         Leader=as.numeric(Leader),
+         Diameter=as.numeric(Diameter)
 
 
 save(data2020,file=here("data/2020_data","data2020.RData"))
